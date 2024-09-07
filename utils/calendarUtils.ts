@@ -1,4 +1,4 @@
-import { TasksState, WorkoutStatus } from "./calendarTypes";
+import { TasksState, WorkoutStatus, Task } from "./calendarTypes";
 
 export function generateYearlyTasks(): TasksState {
   const tasks: TasksState = {};
@@ -20,29 +20,13 @@ export function generateYearlyTasks(): TasksState {
     const date = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD format
 
     // Generate only one task per day
-    const randomTask = {
+    const randomTask: Task = {
       name: taskTypes[Math.floor(Math.random() * taskTypes.length)],
+      completed: false, // Add the completed property
     };
 
     tasks[date] = [randomTask]; // Wrap the single task in an array
   }
 
   return tasks;
-}
-
-export function getBackgroundColor(
-  workoutStatus: WorkoutStatus | undefined,
-  isSelected: boolean
-): string {
-  if (workoutStatus === "done") return "green";
-  if (workoutStatus === "skipped") return "red";
-  if (isSelected) return "blue";
-  return "transparent";
-}
-
-export function getTextColor(
-  isSelected: boolean,
-  workoutStatus: WorkoutStatus | undefined
-): string {
-  return isSelected || workoutStatus ? "white" : "black";
 }

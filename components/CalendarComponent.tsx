@@ -1,63 +1,146 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, Alert } from "react-native";
+import { View, Text, Alert, TouchableOpacity, FlatList } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "@/utils/supabase"; // Adjust the import path as needed
 import {
+  Task,
   TasksState,
+  WorkoutStatus,
   WorkoutStatusState,
   MarkedDates,
   DayProps,
-  WorkoutStatus,
-  Task,
+  Template,
+  DayContentProps,
 } from "../utils/calendarTypes";
-import {
-  generateYearlyTasks,
-  getBackgroundColor,
-  getTextColor,
-} from "../utils/calendarUtils";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-type DayContentProps = {
-  date: DateData;
-  task?: string;
-  textColor: string;
+// Utility functions (you might want to move these to a separate file)
+const getBackgroundColor = (
+  workoutStatus: WorkoutStatus,
+  isSelected: boolean
+): string => {
+  if (isSelected) return "blue";
+  switch (workoutStatus) {
+    case "done":
+      return "green";
+    case "skipped":
+      return "red";
+    default:
+      return "transparent";
+  }
 };
 
-const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
-  <>
-    <Text className={`text-${textColor}`}>{date.day}</Text>
-    {task && (
-      <Text
-        className={`text-xs text-${textColor} absolute bottom-0 text-center w-full`}
-      >
-        {task}
-      </Text>
-    )}
-  </>
-));
+const getTextColor = (
+  isSelected: boolean,
+  workoutStatus: WorkoutStatus
+): string => {
+  if (isSelected || workoutStatus) return "white";
+  return "black";
+};
 
-const CustomDay = React.memo(({ date, state, marking, onPress }: DayProps) => {
+const generateYearlyTasks = (): TasksState => {
+  // Implement this function based on your requirements
+  return {};
+};
+
+// Component definitions
+function DayContent({ date, task, textColor }: DayContentProps) {
+  return (
+    <>
+      <Text className={`text-${textColor}`}>{date.day}</Text>
+      {task && (
+        <Text
+          className={`text-xs text-${textColor} absolute bottom-0 text-center w-full`}
+        >
+          {task}
+        </Text>
+      )}
+    </>
+  );
+}
+
+const MemoizedDayContent = React.memo(DayContent);
+
+function CustomDay({ date, state, marking, onPress }: DayProps) {
   if (!date) return null;
 
   const isSelected = state === "selected";
   const isToday = state === "today";
   const { task, workoutStatus } = marking || {};
 
-  const backgroundColor = getBackgroundColor(workoutStatus || null, isSelected);
+  const backgroundColor = getBackgroundColor(
+    workoutStatus || undefined,
+    isSelected
+  );
   const textColor = getTextColor(isSelected, workoutStatus);
 
   return (
-    <View
+    <TouchableOpacity
       className={`items-center justify-center w-8 h-8 rounded-full ${
         isToday ? "border border-blue-500" : ""
       }`}
       style={{ backgroundColor }}
-      onTouchEnd={() => onPress?.(date)}
+      onPress={() => onPress?.(date)}
     >
-      <DayContent date={date} task={task} textColor={textColor} />
+      <MemoizedDayContent date={date} task={task} textColor={textColor} />
+    </TouchableOpacity>
+  );
+}
+
+const MemoizedCustomDay = React.memo(CustomDay);
+
+function TemplateSelector({
+  onSelectTemplate,
+}: {
+  onSelectTemplate: (template: Template) => void;
+}) {
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    fetchTemplates();
+    console.log("templates", templates);
+  }, []);
+
+  const fetchTemplates = async () => {
+    const { data, error } = await supabase
+      .from("workout_templates")
+      .select("*");
+
+    if (error) {
+      console.error("Error fetching templates:", error);
+    } else {
+      setTemplates(data as Template[]);
+    }
+  };
+
+  const renderTemplateItem = ({ item }: { item: Template }) => (
+    <TouchableOpacity
+      className="bg-white p-4 mb-2 rounded-lg shadow"
+      onPress={() => onSelectTemplate(item)}
+    >
+      <Text className="text-lg font-bold">{item.name}</Text>
+      <Text className="text-sm text-gray-600">{item.description}</Text>
+      <Text className="text-xs text-gray-500 mt-1">
+        {item.tasks.length} day program
+      </Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View className="mt-4">
+      <Text className="text-xl font-bold mb-2">Select a Workout Template</Text>
+      <FlatList
+        data={templates}
+        renderItem={renderTemplateItem}
+        keyExtractor={(item) => item.id.toString()}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      />
     </View>
   );
-});
+}
 
+// Main CalendarComponent
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [tasks, setTasks] = useState<TasksState>({});
@@ -117,6 +200,7 @@ export default function CalendarComponent() {
       return acc;
     }, {} as MarkedDates);
   }, [tasks, workoutStatus, selectedDate]);
+
   const handleDayPress = useCallback((day: DateData) => {
     setSelectedDate(day.dateString);
     showWorkoutStatusAlert(day.dateString);
@@ -174,13 +258,43 @@ export default function CalendarComponent() {
     });
   }, []);
 
+  const handleTemplateSelection = useCallback((template: Template) => {
+    const today = new Date();
+    const newTasks: TasksState = {};
+
+    for (let i = 0; i < 52; i++) {
+      // Generate tasks for a year
+      template.tasks.forEach((task) => {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i * 7 + task.day - 1); // Subtract 1 because day is 1-indexed
+        const dateString = date.toISOString().split("T")[0];
+
+        newTasks[dateString] = [
+          {
+            name: task.exercise,
+            completed: false,
+          },
+        ];
+      });
+    }
+
+    setTasks(newTasks);
+    saveTasks(newTasks);
+    Alert.alert(
+      "Template Applied",
+      `The "${template.name}" template has been applied to your calendar.`
+    );
+  }, []);
+
   return (
-    <View className="flex-1 p-4">
+    <View className="flex-1  p-4 w-full">
+      <Text className=" text-4xl"> hi </Text>
+      <TemplateSelector onSelectTemplate={handleTemplateSelection} />
       <Calendar
         markedDates={markedDates}
-        dayComponent={CustomDay}
+        dayComponent={MemoizedCustomDay}
         onDayPress={handleDayPress}
-        className="h-[350px]"
+        className="h-[350px] mt-4"
       />
     </View>
   );
