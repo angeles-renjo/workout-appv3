@@ -117,10 +117,26 @@ function TemplateSelector({
   );
 }
 
-// Main CalendarComponent
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
+
+  useEffect(() => {
+    const loadSavedData = async () => {
+      try {
+        const savedTasks = await AsyncStorage.getItem("tasks");
+        const savedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
+
+        if (savedTasks) setTasks(JSON.parse(savedTasks));
+        if (savedWorkoutStatus)
+          setWorkoutStatus(JSON.parse(savedWorkoutStatus));
+      } catch (error) {
+        console.error("Error loading saved data:", error);
+      }
+    };
+
+    loadSavedData();
+  }, []);
 
   const markedDates: MarkedDates = useMemo(() => {
     return Object.entries(tasks).reduce((acc, [date, taskList]) => {
@@ -150,38 +166,48 @@ export default function CalendarComponent() {
   }, []);
 
   const updateWorkoutStatus = useCallback(
-    (date: string, status: WorkoutStatus) => {
-      setWorkoutStatus((prevStatus) => ({
-        ...prevStatus,
-        [date]: status,
-      }));
+    async (date: string, status: WorkoutStatus) => {
+      try {
+        setWorkoutStatus((prevStatus) => {
+          const newStatus = { ...prevStatus, [date]: status };
+          AsyncStorage.setItem("workoutStatus", JSON.stringify(newStatus));
+          return newStatus;
+        });
 
-      if (status === "skipped") {
-        adjustSchedule(date);
+        if (status === "skipped") {
+          await adjustSchedule(date);
+        }
+      } catch (error) {
+        console.error("Error updating workout status:", error);
       }
     },
     [setWorkoutStatus]
   );
 
   const adjustSchedule = useCallback(
-    (skippedDate: string) => {
-      setTasks((prevTasks) => {
-        const updatedTasks = { ...prevTasks };
-        const dates = Object.keys(updatedTasks).sort();
-        const skippedIndex = dates.indexOf(skippedDate);
+    async (skippedDate: string) => {
+      try {
+        setTasks((prevTasks) => {
+          const updatedTasks = { ...prevTasks };
+          const dates = Object.keys(updatedTasks).sort();
+          const skippedIndex = dates.indexOf(skippedDate);
 
-        if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
-          const skippedWorkout = updatedTasks[skippedDate];
+          if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
+            const skippedWorkout = updatedTasks[skippedDate];
 
-          for (let i = dates.length - 1; i > skippedIndex; i--) {
-            updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
+            for (let i = dates.length - 1; i > skippedIndex; i--) {
+              updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
+            }
+
+            updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
           }
 
-          updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
-        }
-
-        return updatedTasks;
-      });
+          AsyncStorage.setItem("tasks", JSON.stringify(updatedTasks));
+          return updatedTasks;
+        });
+      } catch (error) {
+        console.error("Error adjusting schedule:", error);
+      }
     },
     [setTasks]
   );
