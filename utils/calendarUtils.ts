@@ -1,28 +1,23 @@
-//calendarUtils.ts
 import { TasksState, WorkoutStatus } from "./calendarTypes";
 
-export function generateMonthlyTasks(year: number, month: number): TasksState {
-  const daysInMonth = new Date(year, month, 0).getDate();
+export function generateYearlyTasks(): TasksState {
   const tasks: TasksState = {};
-
   const taskTypes = [
     "Gym",
     "Run",
     "Yoga",
-    "Swim",
-    "Cycling",
-    "HIIT",
-    "Rest day",
     "Strength training",
     "Cardio",
     "Stretching",
     "Team sports",
   ];
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(
-      day
-    ).padStart(2, "0")}`;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const currentDate = new Date(today);
+    currentDate.setDate(today.getDate() + i);
+
+    const date = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD format
 
     // Generate only one task per day
     const randomTask = {
@@ -36,7 +31,7 @@ export function generateMonthlyTasks(year: number, month: number): TasksState {
 }
 
 export function getBackgroundColor(
-  workoutStatus: WorkoutStatus,
+  workoutStatus: WorkoutStatus | undefined,
   isSelected: boolean
 ): string {
   if (workoutStatus === "done") return "green";

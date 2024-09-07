@@ -10,7 +10,7 @@ import {
   Task,
 } from "../utils/calendarTypes";
 import {
-  generateMonthlyTasks,
+  generateYearlyTasks,
   getBackgroundColor,
   getTextColor,
 } from "../utils/calendarUtils";
@@ -63,11 +63,8 @@ export default function CalendarComponent() {
   const [workoutStatus, setWorkoutStatus] = useState<WorkoutStatusState>({});
 
   useEffect(() => {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
-    const monthlyTasks = generateMonthlyTasks(currentYear, currentMonth);
-    setTasks(monthlyTasks);
+    const yearlyTasks = generateYearlyTasks();
+    setTasks(yearlyTasks);
   }, []);
 
   const markedDates: MarkedDates = useMemo(() => {
