@@ -19,6 +19,7 @@ import {
   getTextColor,
 } from "@/utils/calendarUtils";
 
+import { useAppContext } from "@/context/AppContext";
 // Utility functions (you might want to move these to a separate file)
 
 // Component definitions
@@ -119,57 +120,12 @@ function TemplateSelector({
 // Main CalendarComponent
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [tasks, setTasks] = useState<TasksState>({});
-  const [workoutStatus, setWorkoutStatus] = useState<WorkoutStatusState>({});
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const storedTasks = await AsyncStorage.getItem("tasks");
-      const storedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
-
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
-      } else {
-        const yearlyTasks = generateYearlyTasks();
-        setTasks(yearlyTasks);
-        await AsyncStorage.setItem("tasks", JSON.stringify(yearlyTasks));
-      }
-
-      if (storedWorkoutStatus) {
-        setWorkoutStatus(JSON.parse(storedWorkoutStatus));
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-    }
-  };
-
-  const saveWorkoutStatus = async (newWorkoutStatus: WorkoutStatusState) => {
-    try {
-      await AsyncStorage.setItem(
-        "workoutStatus",
-        JSON.stringify(newWorkoutStatus)
-      );
-    } catch (error) {
-      console.error("Error saving workout status:", error);
-    }
-  };
-
-  const saveTasks = async (newTasks: TasksState) => {
-    try {
-      await AsyncStorage.setItem("tasks", JSON.stringify(newTasks));
-    } catch (error) {
-      console.error("Error saving tasks:", error);
-    }
-  };
+  const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
 
   const markedDates: MarkedDates = useMemo(() => {
     return Object.entries(tasks).reduce((acc, [date, taskList]) => {
       acc[date] = {
-        task: taskList.map((t: Task) => t.name).join(", "),
+        task: taskList.map((t) => t.name).join(", "),
         workoutStatus: workoutStatus[date] || undefined,
         ...(date === selectedDate ? { selected: true } : {}),
       };
@@ -195,87 +151,43 @@ export default function CalendarComponent() {
 
   const updateWorkoutStatus = useCallback(
     (date: string, status: WorkoutStatus) => {
-      setWorkoutStatus((prevStatus) => {
-        const newStatus = {
-          ...prevStatus,
-          [date]: status,
-        };
-        saveWorkoutStatus(newStatus);
-        return newStatus;
-      });
+      setWorkoutStatus((prevStatus) => ({
+        ...prevStatus,
+        [date]: status,
+      }));
 
       if (status === "skipped") {
         adjustSchedule(date);
       }
     },
-    []
+    [setWorkoutStatus]
   );
 
-  const adjustSchedule = useCallback((skippedDate: string) => {
-    setTasks((prevTasks) => {
-      const updatedTasks = { ...prevTasks };
-      const dates = Object.keys(updatedTasks).sort();
-      const skippedIndex = dates.indexOf(skippedDate);
+  const adjustSchedule = useCallback(
+    (skippedDate: string) => {
+      setTasks((prevTasks) => {
+        const updatedTasks = { ...prevTasks };
+        const dates = Object.keys(updatedTasks).sort();
+        const skippedIndex = dates.indexOf(skippedDate);
 
-      if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
-        const skippedWorkout = updatedTasks[skippedDate];
+        if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
+          const skippedWorkout = updatedTasks[skippedDate];
 
-        // Shift workouts starting from the day after the skipped date
-        for (let i = dates.length - 1; i > skippedIndex; i--) {
-          updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
+          for (let i = dates.length - 1; i > skippedIndex; i--) {
+            updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
+          }
+
+          updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
         }
 
-        // Insert the skipped workout into the next day
-        updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
-      }
-
-      saveTasks(updatedTasks);
-      return updatedTasks;
-    });
-  }, []);
-
-  const handleTemplateSelection = useCallback(
-    (template: Template) => {
-      const today = new Date();
-      const newTasks: TasksState = {};
-
-      // Reset workout statuses
-      setWorkoutStatus({});
-      saveWorkoutStatus({});
-
-      for (let i = 0; i < 52; i++) {
-        // Generate tasks for a year
-        template.tasks.forEach((task) => {
-          const date = new Date(today);
-          date.setDate(date.getDate() + i * 7 + task.day - 1); // Subtract 1 because day is 1-indexed
-          const dateString = date.toISOString().split("T")[0];
-
-          newTasks[dateString] = [
-            {
-              name: task.exercise,
-              completed: false,
-            },
-          ];
-        });
-      }
-
-      setTasks(newTasks);
-      saveTasks(newTasks);
-
-      // Reset selected date
-      setSelectedDate("");
-
-      Alert.alert(
-        "Template Applied",
-        `The "${template.name}" template has been applied to your calendar. All previous data has been reset.`
-      );
+        return updatedTasks;
+      });
     },
-    [saveWorkoutStatus, saveTasks]
+    [setTasks]
   );
 
   return (
     <View className="">
-      <TemplateSelector onSelectTemplate={handleTemplateSelection} />
       <Calendar
         markedDates={markedDates}
         dayComponent={MemoizedCustomDay}

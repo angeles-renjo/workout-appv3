@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
-import { supabase } from "@/utils/supabase"; // Adjust the import path as needed
+import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import { supabase } from "@/utils/supabase";
+import { Template } from "../utils/calendarTypes";
+import { useAppContext } from "@/context/AppContext";
 
-type Template = {
-  id: number;
-  name: string;
-  description: string;
-  tasks: {
-    day: number;
-    exercise: string;
-  }[];
-};
-
-type TemplateSelectorProps = {
-  onSelectTemplate: (template: Template) => void;
-};
-
-export default function TemplateSelector({
-  onSelectTemplate,
-}: TemplateSelectorProps) {
+export default function TemplateSelectorPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
+  const { applyTemplate } = useAppContext();
 
   useEffect(() => {
     fetchTemplates();
@@ -37,10 +24,15 @@ export default function TemplateSelector({
     }
   };
 
+  const handleSelectTemplate = (template: Template) => {
+    applyTemplate(template);
+    // Navigate back to the calendar page or show a confirmation message
+  };
+
   const renderTemplateItem = ({ item }: { item: Template }) => (
     <TouchableOpacity
-      className=" p-10 mb-2 rounded-lg shadow max=w-[250px]"
-      onPress={() => onSelectTemplate(item)}
+      className="bg-white p-4 mb-2 rounded-lg shadow"
+      onPress={() => handleSelectTemplate(item)}
     >
       <Text className="text-lg font-bold">{item.name}</Text>
       <Text className="text-sm text-gray-600">{item.description}</Text>
@@ -51,15 +43,12 @@ export default function TemplateSelector({
   );
 
   return (
-    <View>
-      <Text className="flex text-xl font-bold mb-2">
-        Select a Workout Template
-      </Text>
+    <View className="flex-1 p-4">
+      <Text className="text-xl font-bold mb-4">Select a Workout Template</Text>
       <FlatList
         data={templates}
         renderItem={renderTemplateItem}
         keyExtractor={(item) => item.id.toString()}
-        showsHorizontalScrollIndicator={false}
       />
     </View>
   );
