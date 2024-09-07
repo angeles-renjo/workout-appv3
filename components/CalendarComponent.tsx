@@ -258,37 +258,47 @@ export default function CalendarComponent() {
     });
   }, []);
 
-  const handleTemplateSelection = useCallback((template: Template) => {
-    const today = new Date();
-    const newTasks: TasksState = {};
+  const handleTemplateSelection = useCallback(
+    (template: Template) => {
+      const today = new Date();
+      const newTasks: TasksState = {};
 
-    for (let i = 0; i < 52; i++) {
-      // Generate tasks for a year
-      template.tasks.forEach((task) => {
-        const date = new Date(today);
-        date.setDate(date.getDate() + i * 7 + task.day - 1); // Subtract 1 because day is 1-indexed
-        const dateString = date.toISOString().split("T")[0];
+      // Reset workout statuses
+      setWorkoutStatus({});
+      saveWorkoutStatus({});
 
-        newTasks[dateString] = [
-          {
-            name: task.exercise,
-            completed: false,
-          },
-        ];
-      });
-    }
+      for (let i = 0; i < 52; i++) {
+        // Generate tasks for a year
+        template.tasks.forEach((task) => {
+          const date = new Date(today);
+          date.setDate(date.getDate() + i * 7 + task.day - 1); // Subtract 1 because day is 1-indexed
+          const dateString = date.toISOString().split("T")[0];
 
-    setTasks(newTasks);
-    saveTasks(newTasks);
-    Alert.alert(
-      "Template Applied",
-      `The "${template.name}" template has been applied to your calendar.`
-    );
-  }, []);
+          newTasks[dateString] = [
+            {
+              name: task.exercise,
+              completed: false,
+            },
+          ];
+        });
+      }
+
+      setTasks(newTasks);
+      saveTasks(newTasks);
+
+      // Reset selected date
+      setSelectedDate("");
+
+      Alert.alert(
+        "Template Applied",
+        `The "${template.name}" template has been applied to your calendar. All previous data has been reset.`
+      );
+    },
+    [saveWorkoutStatus, saveTasks]
+  );
 
   return (
-    <View className="flex-1  p-4 w-full">
-      <Text className=" text-4xl"> hi </Text>
+    <View className="flex-1 p-4">
       <TemplateSelector onSelectTemplate={handleTemplateSelection} />
       <Calendar
         markedDates={markedDates}
