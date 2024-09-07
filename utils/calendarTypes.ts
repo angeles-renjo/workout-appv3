@@ -1,3 +1,5 @@
+//calendarTypes.ts
+
 import { DateData } from "react-native-calendars";
 export interface Task {
   name: string;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text, Alert } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import {
@@ -7,6 +7,7 @@ import {
   MarkedDates,
   DayProps,
   WorkoutStatus,
+  Task,
 } from "../utils/calendarTypes";
 import {
   generateMonthlyTasks,
@@ -14,35 +15,26 @@ import {
   getTextColor,
 } from "../utils/calendarUtils";
 
-function DayContent({
-  date,
-  task,
-  textColor,
-}: {
+type DayContentProps = {
   date: DateData;
   task?: string;
   textColor: string;
-}) {
-  return (
-    <>
-      <Text className={`text-${textColor}`}>{date.day}</Text>
-      {task && (
-        <Text
-          className={`text-xs text-${textColor} absolute bottom-0 text-center w-full`}
-        >
-          {task}
-        </Text>
-      )}
-    </>
-  );
-}
+};
 
-function CustomDay({
-  date,
-  state,
-  marking,
-  onPress,
-}: DayProps): React.JSX.Element | null {
+const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
+  <>
+    <Text className={`text-${textColor}`}>{date.day}</Text>
+    {task && (
+      <Text
+        className={`text-xs text-${textColor} absolute bottom-0 text-center w-full`}
+      >
+        {task}
+      </Text>
+    )}
+  </>
+));
+
+const CustomDay = React.memo(({ date, state, marking, onPress }: DayProps) => {
   if (!date) return null;
 
   const isSelected = state === "selected";
@@ -63,7 +55,7 @@ function CustomDay({
       <DayContent date={date} task={task} textColor={textColor} />
     </View>
   );
-}
+});
 
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -78,24 +70,23 @@ export default function CalendarComponent() {
     setTasks(monthlyTasks);
   }, []);
 
-  const markedDates: MarkedDates = Object.entries(tasks).reduce(
-    (acc, [date, taskList]) => {
+  const markedDates: MarkedDates = useMemo(() => {
+    return Object.entries(tasks).reduce((acc, [date, taskList]) => {
       acc[date] = {
-        task: taskList.map((t) => t.name).join(", "),
+        task: taskList.map((t: Task) => t.name).join(", "),
         workoutStatus: workoutStatus[date] || undefined,
         ...(date === selectedDate ? { selected: true } : {}),
       };
       return acc;
-    },
-    {} as MarkedDates
-  );
+    }, {} as MarkedDates);
+  }, [tasks, workoutStatus, selectedDate]);
 
-  const handleDayPress = (day: DateData) => {
+  const handleDayPress = useCallback((day: DateData) => {
     setSelectedDate(day.dateString);
     showWorkoutStatusAlert(day.dateString);
-  };
+  }, []);
 
-  const showWorkoutStatusAlert = (date: string) => {
+  const showWorkoutStatusAlert = useCallback((date: string) => {
     Alert.alert("Workout Status", "Did you complete your workout?", [
       {
         text: "Skip",
@@ -104,20 +95,23 @@ export default function CalendarComponent() {
       },
       { text: "Done", onPress: () => updateWorkoutStatus(date, "done") },
     ]);
-  };
+  }, []);
 
-  const updateWorkoutStatus = (date: string, status: WorkoutStatus) => {
-    setWorkoutStatus((prevStatus) => ({
-      ...prevStatus,
-      [date]: status,
-    }));
+  const updateWorkoutStatus = useCallback(
+    (date: string, status: WorkoutStatus) => {
+      setWorkoutStatus((prevStatus) => ({
+        ...prevStatus,
+        [date]: status,
+      }));
 
-    if (status === "skipped") {
-      adjustSchedule(date);
-    }
-  };
+      if (status === "skipped") {
+        adjustSchedule(date);
+      }
+    },
+    []
+  );
 
-  const adjustSchedule = (skippedDate: string) => {
+  const adjustSchedule = useCallback((skippedDate: string) => {
     setTasks((prevTasks) => {
       const updatedTasks = { ...prevTasks };
       const dates = Object.keys(updatedTasks).sort();
@@ -137,7 +131,7 @@ export default function CalendarComponent() {
 
       return updatedTasks;
     });
-  };
+  }, []);
 
   return (
     <View className="flex-1 p-4">
