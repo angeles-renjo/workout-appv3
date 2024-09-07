@@ -73,7 +73,7 @@ export default function CalendarComponent() {
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const currentMonth = currentDate.getMonth() + 1;
     const monthlyTasks = generateMonthlyTasks(currentYear, currentMonth);
     setTasks(monthlyTasks);
   }, []);
@@ -111,6 +111,32 @@ export default function CalendarComponent() {
       ...prevStatus,
       [date]: status,
     }));
+
+    if (status === "skipped") {
+      adjustSchedule(date);
+    }
+  };
+
+  const adjustSchedule = (skippedDate: string) => {
+    setTasks((prevTasks) => {
+      const updatedTasks = { ...prevTasks };
+      const dates = Object.keys(updatedTasks).sort();
+      const skippedIndex = dates.indexOf(skippedDate);
+
+      if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
+        const skippedWorkout = updatedTasks[skippedDate];
+
+        // Shift workouts starting from the day after the skipped date
+        for (let i = dates.length - 1; i > skippedIndex; i--) {
+          updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
+        }
+
+        // Insert the skipped workout into the next day
+        updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
+      }
+
+      return updatedTasks;
+    });
   };
 
   return (
