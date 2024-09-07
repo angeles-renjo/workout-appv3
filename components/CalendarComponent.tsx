@@ -14,6 +14,7 @@ import {
   getBackgroundColor,
   getTextColor,
 } from "../utils/calendarUtils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type DayContentProps = {
   date: DateData;
@@ -63,9 +64,48 @@ export default function CalendarComponent() {
   const [workoutStatus, setWorkoutStatus] = useState<WorkoutStatusState>({});
 
   useEffect(() => {
-    const yearlyTasks = generateYearlyTasks();
-    setTasks(yearlyTasks);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      const storedTasks = await AsyncStorage.getItem("tasks");
+      const storedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
+
+      if (storedTasks) {
+        setTasks(JSON.parse(storedTasks));
+      } else {
+        const yearlyTasks = generateYearlyTasks();
+        setTasks(yearlyTasks);
+        await AsyncStorage.setItem("tasks", JSON.stringify(yearlyTasks));
+      }
+
+      if (storedWorkoutStatus) {
+        setWorkoutStatus(JSON.parse(storedWorkoutStatus));
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
+  };
+
+  const saveWorkoutStatus = async (newWorkoutStatus: WorkoutStatusState) => {
+    try {
+      await AsyncStorage.setItem(
+        "workoutStatus",
+        JSON.stringify(newWorkoutStatus)
+      );
+    } catch (error) {
+      console.error("Error saving workout status:", error);
+    }
+  };
+
+  const saveTasks = async (newTasks: TasksState) => {
+    try {
+      await AsyncStorage.setItem("tasks", JSON.stringify(newTasks));
+    } catch (error) {
+      console.error("Error saving tasks:", error);
+    }
+  };
 
   const markedDates: MarkedDates = useMemo(() => {
     return Object.entries(tasks).reduce((acc, [date, taskList]) => {
@@ -77,7 +117,6 @@ export default function CalendarComponent() {
       return acc;
     }, {} as MarkedDates);
   }, [tasks, workoutStatus, selectedDate]);
-
   const handleDayPress = useCallback((day: DateData) => {
     setSelectedDate(day.dateString);
     showWorkoutStatusAlert(day.dateString);
@@ -96,10 +135,14 @@ export default function CalendarComponent() {
 
   const updateWorkoutStatus = useCallback(
     (date: string, status: WorkoutStatus) => {
-      setWorkoutStatus((prevStatus) => ({
-        ...prevStatus,
-        [date]: status,
-      }));
+      setWorkoutStatus((prevStatus) => {
+        const newStatus = {
+          ...prevStatus,
+          [date]: status,
+        };
+        saveWorkoutStatus(newStatus);
+        return newStatus;
+      });
 
       if (status === "skipped") {
         adjustSchedule(date);
@@ -126,6 +169,7 @@ export default function CalendarComponent() {
         updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
       }
 
+      saveTasks(updatedTasks);
       return updatedTasks;
     });
   }, []);
