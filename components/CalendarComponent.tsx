@@ -13,35 +13,13 @@ import {
   Template,
   DayContentProps,
 } from "../utils/calendarTypes";
+import {
+  generateYearlyTasks,
+  getBackgroundColor,
+  getTextColor,
+} from "@/utils/calendarUtils";
 
 // Utility functions (you might want to move these to a separate file)
-const getBackgroundColor = (
-  workoutStatus: WorkoutStatus,
-  isSelected: boolean
-): string => {
-  if (isSelected) return "blue";
-  switch (workoutStatus) {
-    case "done":
-      return "green";
-    case "skipped":
-      return "red";
-    default:
-      return "transparent";
-  }
-};
-
-const getTextColor = (
-  isSelected: boolean,
-  workoutStatus: WorkoutStatus
-): string => {
-  if (isSelected || workoutStatus) return "white";
-  return "black";
-};
-
-const generateYearlyTasks = (): TasksState => {
-  // Implement this function based on your requirements
-  return {};
-};
 
 // Component definitions
 function DayContent({ date, task, textColor }: DayContentProps) {
@@ -49,9 +27,7 @@ function DayContent({ date, task, textColor }: DayContentProps) {
     <>
       <Text className={`text-${textColor}`}>{date.day}</Text>
       {task && (
-        <Text
-          className={`text-xs text-${textColor} absolute bottom-0 text-center w-full`}
-        >
+        <Text className={`text-xs text-${textColor} text-center w-full`}>
           {task}
         </Text>
       )}
@@ -76,7 +52,7 @@ function CustomDay({ date, state, marking, onPress }: DayProps) {
 
   return (
     <TouchableOpacity
-      className={`items-center justify-center w-8 h-8 rounded-full ${
+      className={`items-center justify-center ${
         isToday ? "border border-blue-500" : ""
       }`}
       style={{ backgroundColor }}
@@ -298,7 +274,7 @@ export default function CalendarComponent() {
   );
 
   return (
-    <View className="flex-1 p-4">
+    <View className="">
       <TemplateSelector onSelectTemplate={handleTemplateSelection} />
       <Calendar
         markedDates={markedDates}

@@ -30,3 +30,25 @@ export function generateYearlyTasks(): TasksState {
 
   return tasks;
 }
+export const getBackgroundColor = (
+  workoutStatus: WorkoutStatus,
+  isSelected: boolean
+): string => {
+  if (isSelected) return "blue";
+  switch (workoutStatus) {
+    case "done":
+      return "green";
+    case "skipped":
+      return "red";
+    default:
+      return "transparent";
+  }
+};
+
+export const getTextColor = (
+  isSelected: boolean,
+  workoutStatus: WorkoutStatus
+): string => {
+  if (isSelected || workoutStatus) return "white";
+  return "black";
+};
