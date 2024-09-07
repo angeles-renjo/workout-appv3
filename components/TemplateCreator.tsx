@@ -7,32 +7,36 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { supabase } from "@/utils/supabase";
-import { Template, Task } from "../utils/calendarTypes";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Template } from "../utils/calendarTypes";
+import { useRouter } from "expo-router";
 
-export default function TemplateCreator() {
+export default function CreateTemplatePage() {
+  const router = useRouter();
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([{ day: 1, exercise: "" }]);
+  const [tasks, setTasks] = useState<Template["tasks"]>([
+    { day: 1, exercise: "" },
+  ]);
 
   const addTask = () => {
-    setTasks([...tasks, { day: 1, exercise: "" }]);
+    const nextDay = tasks.length + 1;
+    setTasks([...tasks, { day: nextDay, exercise: "" }]);
   };
 
-  const updateTask = (
-    index: number,
-    field: keyof Task,
-    value: string | number
-  ) => {
+  const updateTask = (index: number, exercise: string) => {
     const updatedTasks = [...tasks];
-    updatedTasks[index] = { ...updatedTasks[index], [field]: value };
+    updatedTasks[index] = { ...updatedTasks[index], exercise };
     setTasks(updatedTasks);
   };
 
   const removeTask = (index: number) => {
     const updatedTasks = tasks.filter((_, i) => i !== index);
-    setTasks(updatedTasks);
+    const reorderedTasks = updatedTasks.map((task, i) => ({
+      ...task,
+      day: i + 1,
+    }));
+    setTasks(reorderedTasks);
   };
 
   const saveTemplate = async () => {
@@ -42,21 +46,27 @@ export default function TemplateCreator() {
     }
 
     const newTemplate: Template = {
-      id: Date.now(), // This will be replaced by the database
+      id: Date.now(),
       name: templateName,
       description: templateDescription,
       tasks: tasks,
     };
 
     try {
-      const { data, error } = await supabase
-        .from("workout_templates")
-        .insert(newTemplate);
+      const existingTemplatesJson = await AsyncStorage.getItem("userTemplates");
+      let existingTemplates: Template[] = existingTemplatesJson
+        ? JSON.parse(existingTemplatesJson)
+        : [];
 
-      if (error) throw error;
+      existingTemplates.push(newTemplate);
+
+      await AsyncStorage.setItem(
+        "userTemplates",
+        JSON.stringify(existingTemplates)
+      );
 
       Alert.alert("Success", "Template saved successfully");
-      // Reset form or navigate back
+      router.back();
     } catch (error) {
       console.error("Error saving template:", error);
       Alert.alert("Error", "Failed to save template");
@@ -64,18 +74,16 @@ export default function TemplateCreator() {
   };
 
   return (
-    <ScrollView className="flex-1 p-4">
-      <Text className="text-xl font-bold mb-4">Create Workout Template</Text>
+    <View>
+      <Text>Create Workout Template</Text>
 
       <TextInput
-        className="border border-gray-300 rounded p-2 mb-4"
         placeholder="Template Name"
         value={templateName}
         onChangeText={setTemplateName}
       />
 
       <TextInput
-        className="border border-gray-300 rounded p-2 mb-4"
         placeholder="Template Description"
         value={templateDescription}
         onChangeText={setTemplateDescription}
@@ -83,43 +91,26 @@ export default function TemplateCreator() {
       />
 
       {tasks.map((task, index) => (
-        <View key={index} className="flex-row items-center mb-4">
-          <Picker
-            selectedValue={task.day}
-            style={{ height: 50, width: 100 }}
-            onValueChange={(itemValue) => updateTask(index, "day", itemValue)}
-          >
-            {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-              <Picker.Item key={day} label={`Day ${day}`} value={day} />
-            ))}
-          </Picker>
-
+        <View key={index}>
           <TextInput
-            className="flex-1 border border-gray-300 rounded p-2 mx-2"
             placeholder="Exercise"
             value={task.exercise}
-            onChangeText={(text) => updateTask(index, "exercise", text)}
+            onChangeText={(text) => updateTask(index, text)}
           />
-
+          <Text>Day {task.day}</Text>
           <TouchableOpacity onPress={() => removeTask(index)}>
-            <Text className="text-red-500">Remove</Text>
+            <Text>Remove</Text>
           </TouchableOpacity>
         </View>
       ))}
 
-      <TouchableOpacity
-        className="bg-blue-500 p-2 rounded mb-4"
-        onPress={addTask}
-      >
-        <Text className="text-white text-center">Add Task</Text>
+      <TouchableOpacity onPress={addTask}>
+        <Text>Add Exercise</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        className="bg-green-500 p-2 rounded"
-        onPress={saveTemplate}
-      >
-        <Text className="text-white text-center">Save Template</Text>
+      <TouchableOpacity onPress={saveTemplate}>
+        <Text>Save Template</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }

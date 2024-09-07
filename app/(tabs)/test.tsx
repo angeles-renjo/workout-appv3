@@ -1,9 +1,10 @@
-import { View, Text } from "react-native";
+import TemplateCreator from "@/components/TemplateCreator";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const Test = () => {
   return (
     <SafeAreaView>
-      <Text>Test</Text>
+      <TemplateCreator />
     </SafeAreaView>
   );
 };

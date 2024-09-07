@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/utils/supabase";
 import { Template } from "../utils/calendarTypes";
 import { useAppContext } from "@/context/AppContext";
+import { Link, useRouter } from "expo-router";
 
 export default function TemplateSelectorPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [predefinedTemplates, setPredefinedTemplates] = useState<Template[]>(
+    []
+  );
+  const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   const { applyTemplate } = useAppContext();
+  const router = useRouter();
 
   useEffect(() => {
-    fetchTemplates();
+    fetchPredefinedTemplates();
+    loadUserTemplates();
   }, []);
 
-  const fetchTemplates = async () => {
+  const fetchPredefinedTemplates = async () => {
     const { data, error } = await supabase
       .from("workout_templates")
       .select("*");
@@ -20,13 +27,24 @@ export default function TemplateSelectorPage() {
     if (error) {
       console.error("Error fetching templates:", error);
     } else {
-      setTemplates(data as Template[]);
+      setPredefinedTemplates(data as Template[]);
+    }
+  };
+
+  const loadUserTemplates = async () => {
+    try {
+      const templatesJson = await AsyncStorage.getItem("userTemplates");
+      if (templatesJson) {
+        setUserTemplates(JSON.parse(templatesJson));
+      }
+    } catch (error) {
+      console.error("Error loading user templates:", error);
     }
   };
 
   const handleSelectTemplate = (template: Template) => {
     applyTemplate(template);
-    // Navigate back to the calendar page or show a confirmation message
+    router.back();
   };
 
   const renderTemplateItem = ({ item }: { item: Template }) => (
@@ -44,12 +62,34 @@ export default function TemplateSelectorPage() {
 
   return (
     <View className="flex-1 p-4">
-      <Text className="text-xl font-bold mb-4">Select a Workout Template</Text>
+      <Text className="text-xl font-bold mb-4">Workout Templates</Text>
+
+      <Text className="text-lg font-semibold mt-4 mb-2">
+        Predefined Workouts
+      </Text>
       <FlatList
-        data={templates}
+        data={predefinedTemplates}
         renderItem={renderTemplateItem}
         keyExtractor={(item) => item.id.toString()}
       />
+
+      <Text className="text-lg font-semibold mt-4 mb-2">Created Workouts</Text>
+      <FlatList
+        data={userTemplates}
+        renderItem={renderTemplateItem}
+        keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={
+          <Text className="text-gray-500">No created workouts yet</Text>
+        }
+      />
+
+      <Link href="/test" asChild>
+        <TouchableOpacity className="bg-blue-500 p-3 rounded mt-4">
+          <Text className="text-white text-center font-semibold">
+            Create New Template
+          </Text>
+        </TouchableOpacity>
+      </Link>
     </View>
   );
 }
