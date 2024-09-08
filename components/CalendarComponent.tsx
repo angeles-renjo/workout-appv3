@@ -4,10 +4,8 @@ import { Calendar, DateData } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppContext } from "@/context/AppContext";
 import {
-  Task,
   TasksState,
   WorkoutStatus,
-  WorkoutStatusState,
   MarkedDates,
   DayProps,
   DayContentProps,

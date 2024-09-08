@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/utils/supabase";
 import { Template } from "../utils/calendarTypes";
 import { useAppContext } from "@/context/AppContext";
 import { Link, useRouter } from "expo-router";
-
+import EvilIcons from "@expo/vector-icons/EvilIcons";
 export default function TemplateSelectorPage() {
   const [predefinedTemplates, setPredefinedTemplates] = useState<Template[]>(
     []
@@ -47,17 +47,64 @@ export default function TemplateSelectorPage() {
     router.back();
   };
 
-  const renderTemplateItem = ({ item }: { item: Template }) => (
-    <TouchableOpacity
-      className="bg-white p-4 mb-2 rounded-lg shadow"
-      onPress={() => handleSelectTemplate(item)}
-    >
-      <Text className="text-lg font-bold">{item.name}</Text>
-      <Text className="text-sm text-gray-600">{item.description}</Text>
-      <Text className="text-xs text-gray-500 mt-1">
-        {item.tasks.length} day program
-      </Text>
-    </TouchableOpacity>
+  const handleDeleteTemplate = async (templateId: number) => {
+    Alert.alert(
+      "Delete Template",
+      "Are you sure you want to delete this template?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: async () => {
+            const updatedTemplates = userTemplates.filter(
+              (t) => t.id !== templateId
+            );
+            setUserTemplates(updatedTemplates);
+            try {
+              await AsyncStorage.setItem(
+                "userTemplates",
+                JSON.stringify(updatedTemplates)
+              );
+            } catch (error) {
+              console.error("Error saving updated templates:", error);
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
+  const renderTemplateItem = ({
+    item,
+    isUserTemplate,
+  }: {
+    item: Template;
+    isUserTemplate: boolean;
+  }) => (
+    <View className="bg-white p-4 mb-2 rounded-lg shadow flex-row justify-between items-center">
+      <TouchableOpacity
+        onPress={() => handleSelectTemplate(item)}
+        className="flex-1"
+      >
+        <Text className="text-lg font-bold">{item.name}</Text>
+        <Text className="text-sm text-gray-600">{item.description}</Text>
+        <Text className="text-xs text-gray-500 mt-1">
+          {item.tasks.length} day program
+        </Text>
+      </TouchableOpacity>
+      {isUserTemplate && (
+        <TouchableOpacity
+          onPress={() => handleDeleteTemplate(item.id)}
+          className="ml-2"
+        >
+          <EvilIcons name="trash" color="red" size={24} />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   return (
@@ -69,14 +116,18 @@ export default function TemplateSelectorPage() {
       </Text>
       <FlatList
         data={predefinedTemplates}
-        renderItem={renderTemplateItem}
+        renderItem={({ item }) =>
+          renderTemplateItem({ item, isUserTemplate: false })
+        }
         keyExtractor={(item) => item.id.toString()}
       />
 
       <Text className="text-lg font-semibold mt-4 mb-2">Created Workouts</Text>
       <FlatList
         data={userTemplates}
-        renderItem={renderTemplateItem}
+        renderItem={({ item }) =>
+          renderTemplateItem({ item, isUserTemplate: true })
+        }
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={
           <Text className="text-gray-500">No created workouts yet</Text>
