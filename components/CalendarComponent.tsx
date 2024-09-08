@@ -66,57 +66,6 @@ function CustomDay({ date, state, marking, onPress }: DayProps) {
 
 const MemoizedCustomDay = React.memo(CustomDay);
 
-function TemplateSelector({
-  onSelectTemplate,
-}: {
-  onSelectTemplate: (template: Template) => void;
-}) {
-  const [templates, setTemplates] = useState<Template[]>([]);
-
-  useEffect(() => {
-    fetchTemplates();
-    console.log("templates", templates);
-  }, []);
-
-  const fetchTemplates = async () => {
-    const { data, error } = await supabase
-      .from("workout_templates")
-      .select("*");
-
-    if (error) {
-      console.error("Error fetching templates:", error);
-    } else {
-      setTemplates(data as Template[]);
-    }
-  };
-
-  const renderTemplateItem = ({ item }: { item: Template }) => (
-    <TouchableOpacity
-      className="bg-white p-4 mb-2 rounded-lg shadow"
-      onPress={() => onSelectTemplate(item)}
-    >
-      <Text className="text-lg font-bold">{item.name}</Text>
-      <Text className="text-sm text-gray-600">{item.description}</Text>
-      <Text className="text-xs text-gray-500 mt-1">
-        {item.tasks.length} day program
-      </Text>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View className="mt-4">
-      <Text className="text-xl font-bold mb-2">Select a Workout Template</Text>
-      <FlatList
-        data={templates}
-        renderItem={renderTemplateItem}
-        keyExtractor={(item) => item.id.toString()}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      />
-    </View>
-  );
-}
-
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
