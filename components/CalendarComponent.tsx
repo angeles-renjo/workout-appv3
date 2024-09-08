@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, Alert, TouchableOpacity, FlatList } from "react-native";
+import { View, Text, Alert, TouchableOpacity } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/utils/supabase"; // Adjust the import path as needed
+import { useAppContext } from "@/context/AppContext";
 import {
   Task,
   TasksState,
@@ -10,45 +10,31 @@ import {
   WorkoutStatusState,
   MarkedDates,
   DayProps,
-  Template,
   DayContentProps,
 } from "../utils/calendarTypes";
-import {
-  generateYearlyTasks,
-  getBackgroundColor,
-  getTextColor,
-} from "@/utils/calendarUtils";
+import { getBackgroundColor, getTextColor } from "@/utils/calendarUtils";
 
-import { useAppContext } from "@/context/AppContext";
-// Utility functions (you might want to move these to a separate file)
+// Extracted DayContent component
+const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
+  <>
+    <Text className={`text-${textColor}`}>{date.day}</Text>
+    {task && (
+      <Text className={`text-xs text-${textColor} text-center w-full`}>
+        {task}
+      </Text>
+    )}
+  </>
+));
 
-// Component definitions
-function DayContent({ date, task, textColor }: DayContentProps) {
-  return (
-    <>
-      <Text className={`text-${textColor}`}>{date.day}</Text>
-      {task && (
-        <Text className={`text-xs text-${textColor} text-center w-full`}>
-          {task}
-        </Text>
-      )}
-    </>
-  );
-}
-
-const MemoizedDayContent = React.memo(DayContent);
-
-function CustomDay({ date, state, marking, onPress }: DayProps) {
+// Extracted CustomDay component
+const CustomDay = React.memo(({ date, state, marking, onPress }: DayProps) => {
   if (!date) return null;
 
   const isSelected = state === "selected";
   const isToday = state === "today";
   const { task, workoutStatus } = marking || {};
 
-  const backgroundColor = getBackgroundColor(
-    workoutStatus || undefined,
-    isSelected
-  );
+  const backgroundColor = getBackgroundColor(workoutStatus, isSelected);
   const textColor = getTextColor(isSelected, workoutStatus);
 
   return (
@@ -59,39 +45,57 @@ function CustomDay({ date, state, marking, onPress }: DayProps) {
       style={{ backgroundColor }}
       onPress={() => onPress?.(date)}
     >
-      <MemoizedDayContent date={date} task={task} textColor={textColor} />
+      <DayContent date={date} task={task} textColor={textColor} />
     </TouchableOpacity>
   );
-}
+});
 
-const MemoizedCustomDay = React.memo(CustomDay);
+// Helper function to shift tasks
+const shiftTasksAfterSkippedDate = (
+  tasks: TasksState,
+  skippedDate: string
+): TasksState => {
+  const updatedTasks = { ...tasks };
+  const dates = Object.keys(updatedTasks).sort();
+  const skippedIndex = dates.indexOf(skippedDate);
 
+  if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
+    const skippedWorkout = updatedTasks[skippedDate];
+    for (let i = dates.length - 1; i > skippedIndex; i--) {
+      updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
+    }
+    updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
+  }
+
+  return updatedTasks;
+};
+
+// Main CalendarComponent
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
 
   useEffect(() => {
-    const loadSavedData = async () => {
-      try {
-        const savedTasks = await AsyncStorage.getItem("tasks");
-        const savedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
-
-        if (savedTasks) setTasks(JSON.parse(savedTasks));
-        if (savedWorkoutStatus)
-          setWorkoutStatus(JSON.parse(savedWorkoutStatus));
-      } catch (error) {
-        console.error("Error loading saved data:", error);
-      }
-    };
-
     loadSavedData();
   }, []);
+
+  const loadSavedData = async () => {
+    try {
+      const savedTasks = await AsyncStorage.getItem("tasks");
+      const savedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
+
+      if (savedTasks) setTasks(JSON.parse(savedTasks));
+      if (savedWorkoutStatus) setWorkoutStatus(JSON.parse(savedWorkoutStatus));
+    } catch (error) {
+      console.error("Error loading saved data:", error);
+    }
+  };
 
   const markedDates: MarkedDates = useMemo(() => {
     return Object.entries(tasks).reduce((acc, [date, taskList]) => {
       acc[date] = {
         task: taskList.map((t) => t.name).join(", "),
-        workoutStatus: workoutStatus[date] || undefined,
+        workoutStatus: workoutStatus[date],
         ...(date === selectedDate ? { selected: true } : {}),
       };
       return acc;
@@ -137,20 +141,10 @@ export default function CalendarComponent() {
     async (skippedDate: string) => {
       try {
         setTasks((prevTasks) => {
-          const updatedTasks = { ...prevTasks };
-          const dates = Object.keys(updatedTasks).sort();
-          const skippedIndex = dates.indexOf(skippedDate);
-
-          if (skippedIndex !== -1 && skippedIndex < dates.length - 1) {
-            const skippedWorkout = updatedTasks[skippedDate];
-
-            for (let i = dates.length - 1; i > skippedIndex; i--) {
-              updatedTasks[dates[i]] = updatedTasks[dates[i - 1]];
-            }
-
-            updatedTasks[dates[skippedIndex + 1]] = skippedWorkout;
-          }
-
+          const updatedTasks = shiftTasksAfterSkippedDate(
+            prevTasks,
+            skippedDate
+          );
           AsyncStorage.setItem("tasks", JSON.stringify(updatedTasks));
           return updatedTasks;
         });
@@ -165,7 +159,7 @@ export default function CalendarComponent() {
     <View className="">
       <Calendar
         markedDates={markedDates}
-        dayComponent={MemoizedCustomDay}
+        dayComponent={CustomDay}
         onDayPress={handleDayPress}
         className="h-[350px] mt-4"
       />
