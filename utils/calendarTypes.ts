@@ -1,5 +1,3 @@
-// calendarTypes.ts
-
 import { DateData } from "react-native-calendars";
 
 export interface Task {
@@ -42,4 +40,9 @@ export interface DayContentProps {
   date: DateData;
   task?: string;
   textColor: string;
+}
+
+export interface NotificationTime {
+  hour: number;
+  minute: number;
 }
