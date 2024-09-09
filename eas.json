@@ -6,7 +6,11 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
+        "EXPO_PUBLIC_ANON_KEY": "${EXPO_PUBLIC_ANON_KEY}"
+      }
     },
     "preview": {
       "distribution": "internal",
