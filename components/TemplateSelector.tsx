@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, FlatList, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/utils/supabase";
 import { Template } from "../utils/calendarTypes";
 import { useAppContext } from "@/context/AppContext";
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, useFocusEffect } from "expo-router";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
+
 export default function TemplateSelectorPage() {
   const [predefinedTemplates, setPredefinedTemplates] = useState<Template[]>(
     []
@@ -13,11 +14,6 @@ export default function TemplateSelectorPage() {
   const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   const { applyTemplate } = useAppContext();
   const router = useRouter();
-
-  useEffect(() => {
-    fetchPredefinedTemplates();
-    loadUserTemplates();
-  }, []);
 
   const fetchPredefinedTemplates = async () => {
     const { data, error } = await supabase
@@ -31,7 +27,7 @@ export default function TemplateSelectorPage() {
     }
   };
 
-  const loadUserTemplates = async () => {
+  const loadUserTemplates = useCallback(async () => {
     try {
       const templatesJson = await AsyncStorage.getItem("userTemplates");
       if (templatesJson) {
@@ -40,11 +36,37 @@ export default function TemplateSelectorPage() {
     } catch (error) {
       console.error("Error loading user templates:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPredefinedTemplates();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUserTemplates();
+    }, [loadUserTemplates])
+  );
 
   const handleSelectTemplate = (template: Template) => {
-    applyTemplate(template);
-    router.back();
+    Alert.alert(
+      "Apply Template",
+      `Are you sure you want to apply the "${template.name}" template? This will overwrite your current workout plan.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Apply",
+          onPress: () => {
+            applyTemplate(template);
+            Alert.alert("Success", "Template applied successfully");
+            router.back();
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteTemplate = async (templateId: number) => {

@@ -74,7 +74,7 @@ export default function CreateTemplatePage() {
   };
 
   return (
-    <View>
+    <View className=" ">
       <Text>Create Workout Template</Text>
 
       <TextInput
