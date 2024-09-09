@@ -156,7 +156,7 @@ export default function TemplateSelectorPage() {
         }
       />
 
-      <Link href="/test" asChild>
+      <Link href="/templateForm" asChild>
         <TouchableOpacity className="bg-blue-500 p-3 rounded mt-4">
           <Text className="text-white text-center font-semibold">
             Create New Template
