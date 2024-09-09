@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 11.0.2"
+    "version": "remote"
   },
   "build": {
     "development": {
@@ -13,6 +13,8 @@
     "production": {}
   },
   "submit": {
-    "production": {}
+    "production": {
+      "autoIncrement": true
+    }
   }
 }
