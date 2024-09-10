@@ -164,7 +164,7 @@ export default function CalendarComponent() {
   };
 
   return (
-    <View className="">
+    <View className="flex-1 bg-white flex justify-between">
       <Calendar
         markedDates={markedDates}
         key={calendarKey} // Use key to trigger re-render when it changes
