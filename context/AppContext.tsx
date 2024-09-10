@@ -7,14 +7,12 @@ import React, {
   useCallback,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppState, AppStateStatus } from "react-native";
 import {
   TasksState,
   WorkoutStatusState,
   Template,
   NotificationTime,
 } from "../utils/calendarTypes";
-import { generateYearlyTasks } from "@/utils/calendarUtils";
 import * as Notifications from "expo-notifications";
 
 interface AppContextType {

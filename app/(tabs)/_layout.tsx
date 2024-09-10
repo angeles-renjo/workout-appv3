@@ -5,7 +5,6 @@ import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { AppProvider } from "@/context/AppContext";
-import { useWorkoutNotification } from "@/hooks/useWorkoutNotification";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -18,9 +17,6 @@ export default function TabLayout() {
 }
 
 function TabLayoutContent({ colorScheme }: { colorScheme: "light" | "dark" }) {
-  // Use the custom hook to handle workout notifications
-  useWorkoutNotification();
-
   return (
     <Tabs
       screenOptions={{

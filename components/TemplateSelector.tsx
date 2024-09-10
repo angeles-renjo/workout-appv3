@@ -14,7 +14,6 @@ import { Template } from "../utils/calendarTypes";
 import { useAppContext } from "@/context/AppContext";
 import { Link, useRouter, useFocusEffect } from "expo-router";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
-import { useWorkoutNotification } from "@/hooks/useWorkoutNotification";
 
 export default function TemplateSelectorPage() {
   const [predefinedTemplates, setPredefinedTemplates] = useState<Template[]>(
@@ -26,9 +25,6 @@ export default function TemplateSelectorPage() {
   const [isApplying, setIsApplying] = useState(false);
 
   const router = useRouter();
-
-  // Use the workout notification hook
-  useWorkoutNotification();
 
   const fetchPredefinedTemplates = async () => {
     const { data, error } = await supabase
@@ -57,7 +53,6 @@ export default function TemplateSelectorPage() {
     const loadData = async () => {
       setIsLoading(true);
       await Promise.all([fetchPredefinedTemplates(), loadUserTemplates()]);
-      // Ensure the loader is shown for at least 1 second
       setTimeout(() => setIsLoading(false), 1000);
     };
     loadData();
@@ -82,7 +77,6 @@ export default function TemplateSelectorPage() {
           text: "Apply",
           onPress: async () => {
             setIsApplying(true);
-            // Simulate a delay to ensure the loader is visible
             await new Promise((resolve) => setTimeout(resolve, 1000));
             applyTemplate(template);
             setIsApplying(false);
@@ -93,6 +87,7 @@ export default function TemplateSelectorPage() {
       ]
     );
   };
+
   const handleDeleteTemplate = async (templateId: number) => {
     Alert.alert(
       "Delete Template",
@@ -166,7 +161,6 @@ export default function TemplateSelectorPage() {
     <View className="flex-1 p-4">
       <Text className="text-xl font-bold mb-4">Workout Templates</Text>
 
-      {/* Predefined Workouts */}
       <Text className="text-lg font-semibold mt-4 mb-2">
         Predefined Workouts
       </Text>
@@ -178,7 +172,6 @@ export default function TemplateSelectorPage() {
         keyExtractor={(item) => item.id.toString()}
       />
 
-      {/* Created Workouts */}
       <Text className="text-lg font-semibold mt-4 mb-2">Created Workouts</Text>
       <FlatList
         data={userTemplates}
@@ -199,7 +192,6 @@ export default function TemplateSelectorPage() {
         </TouchableOpacity>
       </Link>
 
-      {/* Applying Template Loader */}
       <Modal
         transparent={true}
         animationType="fade"
