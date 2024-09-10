@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, Alert, TouchableOpacity } from "react-native";
+import { View, Text, Alert, TouchableOpacity, Button } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppContext } from "@/context/AppContext";
@@ -71,6 +71,10 @@ const shiftTasksAfterSkippedDate = (
 // Main CalendarComponent
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [currentDate, setCurrentDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  ); // Store today's date
+  const [calendarKey, setCalendarKey] = useState<number>(0); // Key to force re-render
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
 
   useEffect(() => {
@@ -153,14 +157,24 @@ export default function CalendarComponent() {
     [setTasks]
   );
 
+  // Button to go to current month
+  const goToCurrentMonth = () => {
+    setSelectedDate(currentDate); // Set selected date to today
+    setCalendarKey((prevKey) => prevKey + 1); // Increment key to force re-render
+  };
+
   return (
     <View className="">
       <Calendar
         markedDates={markedDates}
+        key={calendarKey} // Use key to trigger re-render when it changes
+        current={currentDate}
         dayComponent={CustomDay}
         onDayPress={handleDayPress}
+        initialDate={selectedDate || currentDate} // Use initialDate to jump to today
         className="h-[350px] mt-4"
       />
+      <Button title="Go to Current Month" onPress={goToCurrentMonth} />
     </View>
   );
 }
