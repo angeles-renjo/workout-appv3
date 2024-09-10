@@ -98,34 +98,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     checkAndScheduleWorkout(); // Schedule workout after applying template
   };
 
-  const sendWorkoutNotification = async (workout: string) => {
-    console.log(`Scheduling notification for workout: ${workout}`);
-    const { hour, minute } = notificationTime;
-    const now = new Date();
-    const scheduledTime = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      hour,
-      minute
-    );
+  const sendWorkoutNotification = useCallback(
+    async (workout: string) => {
+      console.log(`Scheduling notification for workout: ${workout}`);
+      const { hour, minute } = notificationTime;
+      const now = new Date();
+      const scheduledTime = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        hour,
+        minute
+      );
 
-    if (scheduledTime <= now) {
-      scheduledTime.setDate(scheduledTime.getDate() + 1); // Schedule for next day if time has passed
-    }
+      if (scheduledTime <= now) {
+        scheduledTime.setDate(scheduledTime.getDate() + 1);
+      }
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Today's Workout",
-        body: `Don't forget your ${workout} workout today!`,
-        data: { workout },
-      },
-      trigger: {
-        date: scheduledTime,
-      },
-    });
-    console.log(`Notification scheduled for ${scheduledTime.toLocaleString()}`);
-  };
+      // Cancel any existing notifications before scheduling a new one
+      await Notifications.cancelAllScheduledNotificationsAsync();
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Today's Workout",
+          body: `Don't forget your ${workout} workout today!`,
+          data: { workout },
+        },
+        trigger: {
+          date: scheduledTime,
+        },
+      });
+      console.log(
+        `Notification scheduled for ${scheduledTime.toLocaleString()}`
+      );
+    },
+    [notificationTime]
+  );
 
   const checkAndScheduleWorkout = useCallback(async () => {
     console.log("Checking and scheduling workout");
@@ -174,16 +182,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   useEffect(() => {
-    loadData();
+    // Cleanup function to cancel all notifications when the app is unmounted
+    return () => {
+      Notifications.cancelAllScheduledNotificationsAsync();
+    };
   }, []);
-
-  // New useEffect to check for workout after data is loaded
-  useEffect(() => {
-    if (isDataLoaded) {
-      console.log("Data loaded, checking and scheduling workout");
-      checkAndScheduleWorkout();
-    }
-  }, [isDataLoaded, checkAndScheduleWorkout]);
 
   return (
     <AppContext.Provider
