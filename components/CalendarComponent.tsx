@@ -25,28 +25,6 @@ const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
 ));
 
 // Extracted CustomDay component
-const CustomDay = React.memo(({ date, state, marking, onPress }: DayProps) => {
-  if (!date) return null;
-
-  const isSelected = state === "selected";
-  const isToday = state === "today";
-  const { task, workoutStatus } = marking || {};
-
-  const backgroundColor = getBackgroundColor(workoutStatus, isSelected);
-  const textColor = getTextColor(isSelected, workoutStatus);
-
-  return (
-    <TouchableOpacity
-      className={`items-center justify-center ${
-        isToday ? "border border-blue-500" : ""
-      }`}
-      style={{ backgroundColor }}
-      onPress={() => onPress?.(date)}
-    >
-      <DayContent date={date} task={task} textColor={textColor} />
-    </TouchableOpacity>
-  );
-});
 
 // Helper function to shift tasks
 const shiftTasksAfterSkippedDate = (
@@ -73,12 +51,40 @@ export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>(
     new Date().toISOString().split("T")[0]
-  ); // Store today's date
+  );
   const [calendarKey, setCalendarKey] = useState<number>(0); // Key to force re-render
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
 
+  const CustomDay = React.memo(
+    ({ date, state, marking, onPress }: DayProps) => {
+      if (!date) return null;
+
+      const isSelected = state === "selected";
+      const isToday = state === "today";
+      const isCurrentDay = date.dateString === currentDate;
+      const { task, workoutStatus } = marking || {};
+
+      const backgroundColor = getBackgroundColor(workoutStatus, isSelected);
+      const textColor = getTextColor(isSelected, workoutStatus);
+
+      return (
+        <TouchableOpacity
+          className={`items-center justify-center ${
+            isToday ? "border border-blue-500" : ""
+          }`}
+          style={{ backgroundColor, opacity: isCurrentDay ? 1 : 0.5 }}
+          onPress={() => isCurrentDay && onPress?.(date)}
+          disabled={!isCurrentDay}
+        >
+          <DayContent date={date} task={task} textColor={textColor} />
+        </TouchableOpacity>
+      );
+    }
+  );
+
   useEffect(() => {
     loadSavedData();
+    setSelectedDate(currentDate);
   }, []);
 
   const loadSavedData = async () => {
@@ -104,10 +110,15 @@ export default function CalendarComponent() {
     }, {} as MarkedDates);
   }, [tasks, workoutStatus, selectedDate]);
 
-  const handleDayPress = useCallback((day: DateData) => {
-    setSelectedDate(day.dateString);
-    showWorkoutStatusAlert(day.dateString);
-  }, []);
+  const handleDayPress = useCallback(
+    (day: DateData) => {
+      if (day.dateString === currentDate) {
+        setSelectedDate(day.dateString);
+        showWorkoutStatusAlert(day.dateString);
+      }
+    },
+    [currentDate]
+  );
 
   const showWorkoutStatusAlert = useCallback((date: string) => {
     Alert.alert("Workout Status", "Did you complete your workout?", [
@@ -167,14 +178,16 @@ export default function CalendarComponent() {
     <View className="flex-1 bg-white flex justify-between">
       <Calendar
         markedDates={markedDates}
-        key={calendarKey} // Use key to trigger re-render when it changes
+        key={calendarKey}
         current={currentDate}
         dayComponent={CustomDay}
         onDayPress={handleDayPress}
-        initialDate={selectedDate || currentDate} // Use initialDate to jump to today
+        initialDate={currentDate}
         className="h-[350px] mt-4"
+        disableAllTouchEventsForDisabledDays={true}
+        disabledDaysIndexes={[0, 1, 2, 3, 4, 5, 6]} // Disable all days
       />
-      <Button title="Go to Current Month" onPress={goToCurrentMonth} />
+      <Button title="Go to current month" onPress={goToCurrentMonth} />
     </View>
   );
 }
