@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, Alert, TouchableOpacity, Button } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  useWindowDimensions,
+  Alert,
+} from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppContext } from "@/context/AppContext";
@@ -11,22 +18,26 @@ import {
   DayContentProps,
 } from "../utils/calendarTypes";
 import { getBackgroundColor, getTextColor } from "@/utils/calendarUtils";
+import { Feather } from "@expo/vector-icons";
 
-// Extracted DayContent component
 const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
-  <>
-    <Text className={`text-${textColor}`}>{date.day}</Text>
+  <View className="items-center justify-center w-full h-full">
+    <Text
+      className={`text-${textColor} font-semibold text-base sm:text-lg md:text-xl`}
+    >
+      {date.day}
+    </Text>
     {task && (
-      <Text className={`text-xs text-${textColor} text-center w-full`}>
+      <Text
+        className={`text-xs sm:text-sm md:text-base text-${textColor} text-center w-full mt-1`}
+        numberOfLines={2}
+      >
         {task}
       </Text>
     )}
-  </>
+  </View>
 ));
 
-// Extracted CustomDay component
-
-// Helper function to shift tasks
 const shiftTasksAfterSkippedDate = (
   tasks: TasksState,
   skippedDate: string
@@ -46,14 +57,19 @@ const shiftTasksAfterSkippedDate = (
   return updatedTasks;
 };
 
-// Main CalendarComponent
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [calendarKey, setCalendarKey] = useState<number>(0); // Key to force re-render
+  const [calendarKey, setCalendarKey] = useState<number>(0);
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
+  const { width } = useWindowDimensions();
+
+  const daySize = useMemo(() => {
+    const baseSize = width / 7; // 7 days in a week
+    return Math.max(baseSize, 50); // Ensure a minimum size of 50
+  }, [width]);
 
   const CustomDay = React.memo(
     ({ date, state, marking, onPress }: DayProps) => {
@@ -69,12 +85,24 @@ export default function CalendarComponent() {
 
       return (
         <TouchableOpacity
-          className={`items-center justify-center ${
-            isToday ? "border border-blue-500" : ""
-          }`}
-          style={{ backgroundColor, opacity: isCurrentDay ? 1 : 0.5 }}
+          className={`items-center justify-center rounded-xl
+          ${isToday ? "border-2 border-gray-800" : ""}
+          ${isCurrentDay ? "opacity-100" : "opacity-50"}
+        `}
+          style={{
+            backgroundColor,
+            width: daySize,
+            height: daySize,
+            margin: 1,
+          }}
           onPress={() => isCurrentDay && onPress?.(date)}
           disabled={!isCurrentDay}
+          accessibilityLabel={`Select date ${date.dateString}`}
+          accessibilityHint={
+            isCurrentDay
+              ? "Double tap to select this date"
+              : "This date is not selectable"
+          }
         >
           <DayContent date={date} task={task} textColor={textColor} />
         </TouchableOpacity>
@@ -168,26 +196,86 @@ export default function CalendarComponent() {
     [setTasks]
   );
 
-  // Button to go to current month
   const goToCurrentMonth = () => {
-    setSelectedDate(currentDate); // Set selected date to today
-    setCalendarKey((prevKey) => prevKey + 1); // Increment key to force re-render
+    setSelectedDate(currentDate);
+    setCalendarKey((prevKey) => prevKey + 1);
   };
 
   return (
-    <View className="flex-1 bg-white flex justify-between">
-      <Calendar
-        markedDates={markedDates}
-        key={calendarKey}
-        current={currentDate}
-        dayComponent={CustomDay}
-        onDayPress={handleDayPress}
-        initialDate={currentDate}
-        className="h-[350px] mt-4"
-        disableAllTouchEventsForDisabledDays={true}
-        disabledDaysIndexes={[0, 1, 2, 3, 4, 5, 6]} // Disable all days
-      />
-      <Button title="Go to current month" onPress={goToCurrentMonth} />
-    </View>
+    <ScrollView className="flex-1 bg-white dark:bg-gray-900">
+      <View className="p-4 sm:p-6 md:p-8 lg:p-10">
+        <View className="mb-6 flex-row justify-between items-center">
+          <Text className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            Workout Calendar
+          </Text>
+          <TouchableOpacity
+            className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
+            onPress={goToCurrentMonth}
+            accessibilityLabel="Go to current month"
+          >
+            <Feather name="calendar" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+
+        <Calendar
+          markedDates={markedDates}
+          key={calendarKey}
+          current={currentDate}
+          dayComponent={CustomDay}
+          onDayPress={handleDayPress}
+          initialDate={currentDate}
+          className="rounded-lg shadow-lg overflow-hidden"
+          theme={{
+            calendarBackground: "#ffffff",
+            textSectionTitleColor: "#b6c1cd",
+            selectedDayBackgroundColor: "#000000",
+            selectedDayTextColor: "#ffffff",
+            todayTextColor: "#000000",
+            dayTextColor: "#2d4150",
+            textDisabledColor: "#d9e1e8",
+            dotColor: "#000000",
+            selectedDotColor: "#ffffff",
+            arrowColor: "black",
+            monthTextColor: "black",
+            indicatorColor: "black",
+            textDayFontFamily: "System",
+            textMonthFontFamily: "System",
+            textDayHeaderFontFamily: "System",
+            textDayFontWeight: "400",
+            textMonthFontWeight: "bold",
+            textDayHeaderFontWeight: "300",
+            textDayFontSize: 16,
+            textMonthFontSize: 18,
+            textDayHeaderFontSize: 14,
+          }}
+        />
+
+        <View className="mt-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+          <Text className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
+            Today's Workout: {currentDate}
+          </Text>
+          <View className="flex-row justify-around">
+            <TouchableOpacity
+              className="bg-gray-800 dark:bg-gray-200 py-3 px-6 rounded-full"
+              onPress={() => updateWorkoutStatus(currentDate, "done")}
+              accessibilityLabel="Mark workout as done"
+            >
+              <Text className="text-white dark:text-gray-800 font-semibold text-lg">
+                Done
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="bg-gray-300 dark:bg-gray-600 py-3 px-6 rounded-full"
+              onPress={() => updateWorkoutStatus(currentDate, "skipped")}
+              accessibilityLabel="Mark workout as skipped"
+            >
+              <Text className="text-gray-800 dark:text-gray-200 font-semibold text-lg">
+                Skip
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
