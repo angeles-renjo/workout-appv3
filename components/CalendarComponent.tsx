@@ -20,24 +20,6 @@ import {
 import { getBackgroundColor, getTextColor } from "@/utils/calendarUtils";
 import { Feather } from "@expo/vector-icons";
 
-const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
-  <View className="items-center justify-center w-full h-full">
-    <Text
-      className={`text-${textColor} font-semibold text-base sm:text-lg md:text-xl`}
-    >
-      {date.day}
-    </Text>
-    {task && (
-      <Text
-        className={`text-xs sm:text-sm md:text-base text-${textColor} text-center w-full mt-1`}
-        numberOfLines={2}
-      >
-        {task}
-      </Text>
-    )}
-  </View>
-));
-
 const shiftTasksAfterSkippedDate = (
   tasks: TasksState,
   skippedDate: string
@@ -57,12 +39,31 @@ const shiftTasksAfterSkippedDate = (
   return updatedTasks;
 };
 
+// New state to track if current day's workout is completed
+const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
+  <View className="items-center justify-center w-full h-full">
+    <Text
+      className={`text-${textColor} font-semibold text-base sm:text-lg md:text-xl`}
+    >
+      {date.day}
+    </Text>
+    {task && (
+      <Text
+        className={`text-xs sm:text-sm md:text-base text-${textColor} text-center w-full mt-1`}
+        numberOfLines={2}
+      >
+        {task}
+      </Text>
+    )}
+  </View>
+));
+
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [calendarKey, setCalendarKey] = useState<number>(0);
+  const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false); // New state to track interaction
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
   const { width } = useWindowDimensions();
 
@@ -70,6 +71,115 @@ export default function CalendarComponent() {
     const baseSize = width / 7; // 7 days in a week
     return Math.max(baseSize, 50); // Ensure a minimum size of 50
   }, [width]);
+
+  useEffect(() => {
+    loadSavedData();
+    checkUserInteractionForToday();
+    setSelectedDate(currentDate);
+  }, []);
+
+  // Check if the user has already interacted with the current day
+  const checkUserInteractionForToday = async () => {
+    try {
+      const interaction = await AsyncStorage.getItem(
+        `interaction-${currentDate}`
+      );
+      setHasInteractedToday(interaction !== null); // If interaction exists, set to true
+    } catch (error) {
+      console.error("Error checking interaction for today:", error);
+    }
+  };
+
+  const loadSavedData = async () => {
+    try {
+      const savedTasks = await AsyncStorage.getItem("tasks");
+      const savedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
+
+      if (savedTasks) setTasks(JSON.parse(savedTasks));
+      if (savedWorkoutStatus) setWorkoutStatus(JSON.parse(savedWorkoutStatus));
+    } catch (error) {
+      console.error("Error loading saved data:", error);
+    }
+  };
+
+  const handleDayPress = useCallback(
+    (day: DateData) => {
+      if (day.dateString === currentDate && !hasInteractedToday) {
+        setSelectedDate(day.dateString);
+        showWorkoutStatusAlert(day.dateString);
+      }
+    },
+    [currentDate, hasInteractedToday]
+  );
+
+  const showWorkoutStatusAlert = useCallback(
+    (date: string) => {
+      if (!hasInteractedToday) {
+        Alert.alert("Workout Status", "Did you complete your workout?", [
+          {
+            text: "Skip",
+            onPress: () => updateWorkoutStatus(date, "skipped"),
+            style: "cancel",
+          },
+          { text: "Done", onPress: () => updateWorkoutStatus(date, "done") },
+        ]);
+      }
+    },
+    [hasInteractedToday]
+  );
+
+  const updateWorkoutStatus = useCallback(
+    async (date: string, status: WorkoutStatus) => {
+      try {
+        setWorkoutStatus((prevStatus) => {
+          const newStatus = { ...prevStatus, [date]: status };
+          AsyncStorage.setItem("workoutStatus", JSON.stringify(newStatus));
+          return newStatus;
+        });
+
+        // Mark interaction for today in AsyncStorage
+        await AsyncStorage.setItem(`interaction-${currentDate}`, "true");
+
+        setHasInteractedToday(true); // Disable future interaction for today
+
+        if (status === "skipped") {
+          await adjustSchedule(date);
+        }
+      } catch (error) {
+        console.error("Error updating workout status:", error);
+      }
+    },
+    [setWorkoutStatus, currentDate]
+  );
+
+  const adjustSchedule = useCallback(
+    async (skippedDate: string) => {
+      try {
+        setTasks((prevTasks) => {
+          const updatedTasks = shiftTasksAfterSkippedDate(
+            prevTasks,
+            skippedDate
+          );
+          AsyncStorage.setItem("tasks", JSON.stringify(updatedTasks));
+          return updatedTasks;
+        });
+      } catch (error) {
+        console.error("Error adjusting schedule:", error);
+      }
+    },
+    [setTasks]
+  );
+
+  const markedDates: MarkedDates = useMemo(() => {
+    return Object.entries(tasks).reduce((acc, [date, taskList]) => {
+      acc[date] = {
+        task: taskList.map((t) => t.name).join(", "),
+        workoutStatus: workoutStatus[date],
+        ...(date === selectedDate ? { selected: true } : {}),
+      };
+      return acc;
+    }, {} as MarkedDates);
+  }, [tasks, workoutStatus, selectedDate]);
 
   const CustomDay = React.memo(
     ({ date, state, marking, onPress }: DayProps) => {
@@ -110,95 +220,8 @@ export default function CalendarComponent() {
     }
   );
 
-  useEffect(() => {
-    loadSavedData();
-    setSelectedDate(currentDate);
-  }, []);
-
-  const loadSavedData = async () => {
-    try {
-      const savedTasks = await AsyncStorage.getItem("tasks");
-      const savedWorkoutStatus = await AsyncStorage.getItem("workoutStatus");
-
-      if (savedTasks) setTasks(JSON.parse(savedTasks));
-      if (savedWorkoutStatus) setWorkoutStatus(JSON.parse(savedWorkoutStatus));
-    } catch (error) {
-      console.error("Error loading saved data:", error);
-    }
-  };
-
-  const markedDates: MarkedDates = useMemo(() => {
-    return Object.entries(tasks).reduce((acc, [date, taskList]) => {
-      acc[date] = {
-        task: taskList.map((t) => t.name).join(", "),
-        workoutStatus: workoutStatus[date],
-        ...(date === selectedDate ? { selected: true } : {}),
-      };
-      return acc;
-    }, {} as MarkedDates);
-  }, [tasks, workoutStatus, selectedDate]);
-
-  const handleDayPress = useCallback(
-    (day: DateData) => {
-      if (day.dateString === currentDate) {
-        setSelectedDate(day.dateString);
-        showWorkoutStatusAlert(day.dateString);
-      }
-    },
-    [currentDate]
-  );
-
-  const showWorkoutStatusAlert = useCallback((date: string) => {
-    Alert.alert("Workout Status", "Did you complete your workout?", [
-      {
-        text: "Skip",
-        onPress: () => updateWorkoutStatus(date, "skipped"),
-        style: "cancel",
-      },
-      { text: "Done", onPress: () => updateWorkoutStatus(date, "done") },
-    ]);
-  }, []);
-
-  const updateWorkoutStatus = useCallback(
-    async (date: string, status: WorkoutStatus) => {
-      try {
-        setWorkoutStatus((prevStatus) => {
-          const newStatus = { ...prevStatus, [date]: status };
-          AsyncStorage.setItem("workoutStatus", JSON.stringify(newStatus));
-          return newStatus;
-        });
-
-        if (status === "skipped") {
-          await adjustSchedule(date);
-        }
-      } catch (error) {
-        console.error("Error updating workout status:", error);
-      }
-    },
-    [setWorkoutStatus]
-  );
-
-  const adjustSchedule = useCallback(
-    async (skippedDate: string) => {
-      try {
-        setTasks((prevTasks) => {
-          const updatedTasks = shiftTasksAfterSkippedDate(
-            prevTasks,
-            skippedDate
-          );
-          AsyncStorage.setItem("tasks", JSON.stringify(updatedTasks));
-          return updatedTasks;
-        });
-      } catch (error) {
-        console.error("Error adjusting schedule:", error);
-      }
-    },
-    [setTasks]
-  );
-
   const goToCurrentMonth = () => {
     setSelectedDate(currentDate);
-    setCalendarKey((prevKey) => prevKey + 1);
   };
 
   return (
@@ -219,7 +242,6 @@ export default function CalendarComponent() {
 
         <Calendar
           markedDates={markedDates}
-          key={calendarKey}
           current={currentDate}
           dayComponent={CustomDay}
           onDayPress={handleDayPress}
@@ -256,18 +278,24 @@ export default function CalendarComponent() {
           </Text>
           <View className="flex-row justify-around">
             <TouchableOpacity
-              className="bg-gray-800 dark:bg-gray-200 py-3 px-6 rounded-full"
+              className={`bg-gray-800 dark:bg-gray-200 py-3 px-6 rounded-full ${
+                hasInteractedToday ? "opacity-50" : ""
+              }`}
               onPress={() => updateWorkoutStatus(currentDate, "done")}
               accessibilityLabel="Mark workout as done"
+              disabled={hasInteractedToday}
             >
               <Text className="text-white dark:text-gray-800 font-semibold text-lg">
                 Done
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="bg-gray-300 dark:bg-gray-600 py-3 px-6 rounded-full"
+              className={`bg-gray-300 dark:bg-gray-600 py-3 px-6 rounded-full ${
+                hasInteractedToday ? "opacity-50" : ""
+              }`}
               onPress={() => updateWorkoutStatus(currentDate, "skipped")}
               accessibilityLabel="Mark workout as skipped"
+              disabled={hasInteractedToday}
             >
               <Text className="text-gray-800 dark:text-gray-200 font-semibold text-lg">
                 Skip
