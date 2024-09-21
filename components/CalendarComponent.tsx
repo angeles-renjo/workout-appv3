@@ -15,7 +15,6 @@ import {
   WorkoutStatus,
   MarkedDates,
   DayProps,
-  DayContentProps,
 } from "../utils/calendarTypes";
 import { getBackgroundColor, getTextColor } from "@/utils/calendarUtils";
 import { Feather } from "@expo/vector-icons";
@@ -39,23 +38,33 @@ const shiftTasksAfterSkippedDate = (
   return updatedTasks;
 };
 
-const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
-  <View className="items-center justify-center w-full h-full">
-    <Text
-      className={`text-${textColor} font-semibold text-base sm:text-lg md:text-xl`}
-    >
-      {date.day}
-    </Text>
-    {task && (
+const DayContent = React.memo(
+  ({
+    date,
+    task,
+    textColor,
+  }: {
+    date: DateData;
+    task?: string;
+    textColor: string;
+  }) => (
+    <View className="items-center justify-center w-full h-full">
       <Text
-        className={`text-xs sm:text-sm md:text-base text-${textColor} text-center w-full mt-1`}
-        numberOfLines={2}
+        className={`text-${textColor} font-semibold text-base sm:text-lg md:text-xl`}
       >
-        {task}
+        {date.day}
       </Text>
-    )}
-  </View>
-));
+      {task && (
+        <Text
+          className={`text-xs sm:text-sm md:text-base text-${textColor} text-center w-full mt-1`}
+          numberOfLines={2}
+        >
+          {task}
+        </Text>
+      )}
+    </View>
+  )
+);
 
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -66,10 +75,7 @@ export default function CalendarComponent() {
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
   const { width } = useWindowDimensions();
 
-  const daySize = useMemo(() => {
-    const baseSize = width / 7;
-    return Math.max(baseSize, 50);
-  }, [width]);
+  const daySize = useMemo(() => Math.max(width / 7, 50), [width]);
 
   const checkUserInteractionForToday = useCallback(async () => {
     try {
@@ -195,7 +201,7 @@ export default function CalendarComponent() {
       return (
         <TouchableOpacity
           className={`items-center justify-center rounded-xl
-          ${isToday ? "border ${isToday ? border-2 border-gray-800" : ""}
+          ${isToday ? "border-2 border-gray-800" : ""}
           ${isCurrentDay ? "opacity-100" : "opacity-50"}
         `}
           style={{
@@ -219,10 +225,6 @@ export default function CalendarComponent() {
     }
   );
 
-  const goToCurrentMonth = () => {
-    setSelectedDate(currentDate);
-  };
-
   return (
     <ScrollView className="flex-1 bg-white dark:bg-gray-900">
       <View className="p-4 sm:p-6 md:p-8 lg:p-10">
@@ -232,7 +234,7 @@ export default function CalendarComponent() {
           </Text>
           <TouchableOpacity
             className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
-            onPress={goToCurrentMonth}
+            onPress={() => setSelectedDate(currentDate)}
             accessibilityLabel="Go to current month"
           >
             <Feather name="calendar" size={24} color="black" />
@@ -276,30 +278,33 @@ export default function CalendarComponent() {
             Today's Workout: {currentDate}
           </Text>
           <View className="flex-row justify-around">
-            <TouchableOpacity
-              className={`bg-gray-800 dark:bg-gray-200 py-3 px-6 rounded-full ${
-                hasInteractedToday ? "opacity-50" : ""
-              }`}
-              onPress={() => updateWorkoutStatus(currentDate, "done")}
-              accessibilityLabel="Mark workout as done"
-              disabled={hasInteractedToday}
-            >
-              <Text className="text-white dark:text-gray-800 font-semibold text-lg">
-                Done
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className={`bg-gray-300 dark:bg-gray-600 py-3 px-6 rounded-full ${
-                hasInteractedToday ? "opacity-50" : ""
-              }`}
-              onPress={() => updateWorkoutStatus(currentDate, "skipped")}
-              accessibilityLabel="Mark workout as skipped"
-              disabled={hasInteractedToday}
-            >
-              <Text className="text-gray-800 dark:text-gray-200 font-semibold text-lg">
-                Skip
-              </Text>
-            </TouchableOpacity>
+            {["done", "skipped"].map((status) => (
+              <TouchableOpacity
+                key={status}
+                className={`${
+                  status === "done"
+                    ? "bg-gray-800 dark:bg-gray-200"
+                    : "bg-gray-300 dark:bg-gray-600"
+                } py-3 px-6 rounded-full ${
+                  hasInteractedToday ? "opacity-50" : ""
+                }`}
+                onPress={() =>
+                  updateWorkoutStatus(currentDate, status as WorkoutStatus)
+                }
+                accessibilityLabel={`Mark workout as ${status}`}
+                disabled={hasInteractedToday}
+              >
+                <Text
+                  className={`${
+                    status === "done"
+                      ? "text-white dark:text-gray-800"
+                      : "text-gray-800 dark:text-gray-200"
+                  } font-semibold text-lg`}
+                >
+                  {status === "done" ? "Done" : "Skip"}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </View>
