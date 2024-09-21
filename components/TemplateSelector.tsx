@@ -21,7 +21,7 @@ export default function TemplateSelectorPage() {
   );
   const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { applyTemplate } = useAppContext();
+  const { applyTemplate, resetCurrentDayInteraction } = useAppContext();
   const [isApplying, setIsApplying] = useState(false);
 
   const router = useRouter();
@@ -67,7 +67,7 @@ export default function TemplateSelectorPage() {
   const handleSelectTemplate = (template: Template) => {
     Alert.alert(
       "Apply Template",
-      `Are you sure you want to apply the "${template.name}" template? This will overwrite your current workout plan.`,
+      `Are you sure you want to apply the "${template.name}" template? This will overwrite your current workout plan and reset all interactions.`,
       [
         {
           text: "Cancel",
@@ -77,11 +77,19 @@ export default function TemplateSelectorPage() {
           text: "Apply",
           onPress: async () => {
             setIsApplying(true);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            applyTemplate(template);
-            setIsApplying(false);
-            Alert.alert("Success", "Template applied successfully");
-            router.back();
+            try {
+              await applyTemplate(template);
+              Alert.alert("Success", "Template applied successfully");
+            } catch (error) {
+              console.error("Error applying template:", error);
+              Alert.alert(
+                "Error",
+                "Failed to apply template. Please try again."
+              );
+            } finally {
+              setIsApplying(false);
+              router.back();
+            }
           },
         },
       ]

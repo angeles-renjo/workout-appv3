@@ -22,9 +22,10 @@ interface AppContextType {
   setWorkoutStatus: React.Dispatch<React.SetStateAction<WorkoutStatusState>>;
   notificationTime: NotificationTime;
   setNotificationTime: (time: NotificationTime) => Promise<void>;
-  applyTemplate: (template: Template) => void;
+  applyTemplate: (template: Template) => Promise<void>;
   sendWorkoutNotification: (workout: string) => Promise<void>;
   checkAndScheduleWorkout: () => Promise<void>;
+  resetCurrentDayInteraction: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -63,38 +64,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     try {
       await AsyncStorage.setItem("notificationTime", JSON.stringify(time));
       setNotificationTimeState(time);
-      await checkAndScheduleWorkout(); // Reschedule with new time
+      await checkAndScheduleWorkout();
     } catch (error) {
       console.error("Error saving notification time:", error);
     }
   };
 
-  const applyTemplate = (template: Template) => {
-    const today = new Date();
-    const newTasks: TasksState = {};
+  const resetCurrentDayInteraction = useCallback(async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const interactionKeys = keys.filter((key) =>
+        key.startsWith("interaction-")
+      );
+      await AsyncStorage.multiRemove(interactionKeys);
 
-    setWorkoutStatus({});
-    saveWorkoutStatus({});
-
-    for (let i = 0; i < 52; i++) {
-      template.tasks.forEach((task) => {
-        const date = new Date(today);
-        date.setDate(date.getDate() + i * 7 + task.day - 1);
-        const dateString = date.toISOString().split("T")[0];
-
-        newTasks[dateString] = [
-          {
-            name: task.exercise,
-            completed: false,
-          },
-        ];
-      });
+      setWorkoutStatus({});
+      await AsyncStorage.setItem("workoutStatus", JSON.stringify({}));
+    } catch (error) {
+      console.error("Error resetting interactions:", error);
     }
-
-    setTasks(newTasks);
-    saveTasks(newTasks);
-    checkAndScheduleWorkout(); // Schedule workout after applying template
-  };
+  }, []);
 
   const sendWorkoutNotification = useCallback(
     async (workout: string) => {
@@ -113,7 +102,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         scheduledTime.setDate(scheduledTime.getDate() + 1);
       }
 
-      // Cancel any existing notifications before scheduling a new one
       await Notifications.cancelAllScheduledNotificationsAsync();
 
       await Notifications.scheduleNotificationAsync({
@@ -138,7 +126,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     const today = new Date().toISOString().split("T")[0];
     const todaysWorkout = tasks[today];
 
-    // Cancel any existing notifications
     await Notifications.cancelAllScheduledNotificationsAsync();
 
     if (todaysWorkout && todaysWorkout.length > 0 && !workoutStatus[today]) {
@@ -149,7 +136,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         "No workout found for today or workout already completed/skipped"
       );
     }
-  }, [tasks, workoutStatus, notificationTime, sendWorkoutNotification]); // Add sendWorkoutNotification
+  }, [tasks, workoutStatus, notificationTime, sendWorkoutNotification]);
+
+  const applyTemplate = useCallback(
+    async (template: Template) => {
+      const today = new Date();
+      const newTasks: TasksState = {};
+
+      for (let i = 0; i < 52; i++) {
+        template.tasks.forEach((task) => {
+          const date = new Date(today);
+          date.setDate(date.getDate() + i * 7 + task.day - 1);
+          const dateString = date.toISOString().split("T")[0];
+
+          newTasks[dateString] = [
+            {
+              name: task.exercise,
+              completed: false,
+            },
+          ];
+        });
+      }
+
+      setTasks(newTasks);
+      await AsyncStorage.setItem("tasks", JSON.stringify(newTasks));
+
+      await resetCurrentDayInteraction();
+      await checkAndScheduleWorkout();
+    },
+    [checkAndScheduleWorkout, resetCurrentDayInteraction]
+  );
 
   const loadData = async () => {
     try {
@@ -180,7 +196,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   useEffect(() => {
-    // Cleanup function to cancel all notifications when the app is unmounted
+    loadData();
     return () => {
       Notifications.cancelAllScheduledNotificationsAsync();
     };
@@ -198,6 +214,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         applyTemplate,
         sendWorkoutNotification,
         checkAndScheduleWorkout,
+        resetCurrentDayInteraction,
       }}
     >
       {children}

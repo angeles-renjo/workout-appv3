@@ -39,7 +39,6 @@ const shiftTasksAfterSkippedDate = (
   return updatedTasks;
 };
 
-// New state to track if current day's workout is completed
 const DayContent = React.memo(({ date, task, textColor }: DayContentProps) => (
   <View className="items-center justify-center w-full h-full">
     <Text
@@ -63,32 +62,34 @@ export default function CalendarComponent() {
   const [currentDate, setCurrentDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false); // New state to track interaction
+  const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false);
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
   const { width } = useWindowDimensions();
 
   const daySize = useMemo(() => {
-    const baseSize = width / 7; // 7 days in a week
-    return Math.max(baseSize, 50); // Ensure a minimum size of 50
+    const baseSize = width / 7;
+    return Math.max(baseSize, 50);
   }, [width]);
 
-  useEffect(() => {
-    loadSavedData();
-    checkUserInteractionForToday();
-    setSelectedDate(currentDate);
-  }, []);
-
-  // Check if the user has already interacted with the current day
-  const checkUserInteractionForToday = async () => {
+  const checkUserInteractionForToday = useCallback(async () => {
     try {
       const interaction = await AsyncStorage.getItem(
         `interaction-${currentDate}`
       );
-      setHasInteractedToday(interaction !== null); // If interaction exists, set to true
+      setHasInteractedToday(interaction !== null);
     } catch (error) {
       console.error("Error checking interaction for today:", error);
     }
-  };
+  }, [currentDate]);
+
+  useEffect(() => {
+    loadSavedData();
+    setSelectedDate(currentDate);
+  }, []);
+
+  useEffect(() => {
+    checkUserInteractionForToday();
+  }, [checkUserInteractionForToday, currentDate, tasks, workoutStatus]);
 
   const loadSavedData = async () => {
     try {
@@ -137,10 +138,8 @@ export default function CalendarComponent() {
           return newStatus;
         });
 
-        // Mark interaction for today in AsyncStorage
         await AsyncStorage.setItem(`interaction-${currentDate}`, "true");
-
-        setHasInteractedToday(true); // Disable future interaction for today
+        setHasInteractedToday(true);
 
         if (status === "skipped") {
           await adjustSchedule(date);
@@ -196,7 +195,7 @@ export default function CalendarComponent() {
       return (
         <TouchableOpacity
           className={`items-center justify-center rounded-xl
-          ${isToday ? "border-2 border-gray-800" : ""}
+          ${isToday ? "border ${isToday ? border-2 border-gray-800" : ""}
           ${isCurrentDay ? "opacity-100" : "opacity-50"}
         `}
           style={{
