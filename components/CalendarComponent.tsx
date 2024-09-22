@@ -47,13 +47,6 @@ export default function CalendarComponent() {
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
   const { width, height } = useWindowDimensions();
 
-  const daySize = useMemo(() => {
-    const availableWidth = width - 32; // Subtracting padding
-    const availableHeight = height * 0.7; // Using 70% of screen height for calendar
-    const baseSize = Math.min(availableWidth / 7, availableHeight / 8); // 7 days in a week, roughly 6 weeks shown plus header
-    return Math.max(baseSize, 50);
-  }, [width, height]);
-
   const checkUserInteractionForToday = useCallback(async () => {
     try {
       const interaction = await AsyncStorage.getItem(
@@ -178,13 +171,13 @@ export default function CalendarComponent() {
       return (
         <TouchableOpacity
           className={`items-center justify-center rounded-xl
-        ${isToday ? "border-2 border-black" : ""}
-        ${isCurrentDay ? "opacity-100" : "opacity-60"}
-      `}
+          ${isToday ? "border-2 border-black" : ""}
+          ${isCurrentDay ? "opacity-100" : "opacity-60"}
+        `}
           style={{
             backgroundColor,
-            width: daySize,
-            height: daySize,
+            width: 50, // Fixed width
+            height: 120, // Fixed height
             padding: 2,
           }}
           onPress={() => isCurrentDay && onPress?.(date)}
@@ -198,14 +191,14 @@ export default function CalendarComponent() {
         >
           <Text
             className={`text-${textColor} font-semibold text-center`}
-            style={{ fontSize: daySize * 0.35 }}
+            style={{ fontSize: 18 }} // Fixed font size
           >
             {date.day}
           </Text>
           {task && (
             <Text
               className={`text-${textColor} text-center w-full mt-1`}
-              style={{ fontSize: daySize * 0.18 }}
+              style={{ fontSize: 12 }} // Fixed font size
               numberOfLines={2}
             >
               {task}
