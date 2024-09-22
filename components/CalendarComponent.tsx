@@ -38,34 +38,6 @@ const shiftTasksAfterSkippedDate = (
   return updatedTasks;
 };
 
-const DayContent = React.memo(
-  ({
-    date,
-    task,
-    textColor,
-  }: {
-    date: DateData;
-    task?: string;
-    textColor: string;
-  }) => (
-    <View className="items-center justify-center w-full h-full">
-      <Text
-        className={`text-${textColor} font-semibold text-base sm:text-lg md:text-xl`}
-      >
-        {date.day}
-      </Text>
-      {task && (
-        <Text
-          className={`text-xs sm:text-sm md:text-base text-${textColor} text-center w-full mt-1`}
-          numberOfLines={2}
-        >
-          {task}
-        </Text>
-      )}
-    </View>
-  )
-);
-
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>(
@@ -73,9 +45,14 @@ export default function CalendarComponent() {
   );
   const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false);
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
-  const daySize = useMemo(() => Math.max(width / 7, 50), [width]);
+  const daySize = useMemo(() => {
+    const availableWidth = width - 32; // Subtracting padding
+    const availableHeight = height * 0.7; // Using 70% of screen height for calendar
+    const baseSize = Math.min(availableWidth / 7, availableHeight / 8); // 7 days in a week, roughly 6 weeks shown plus header
+    return Math.max(baseSize, 50);
+  }, [width, height]);
 
   const checkUserInteractionForToday = useCallback(async () => {
     try {
@@ -201,14 +178,14 @@ export default function CalendarComponent() {
       return (
         <TouchableOpacity
           className={`items-center justify-center rounded-xl
-          ${isToday ? "border-2 border-gray-800" : ""}
-          ${isCurrentDay ? "opacity-100" : "opacity-50"}
-        `}
+        ${isToday ? "border-2 border-black" : ""}
+        ${isCurrentDay ? "opacity-100" : "opacity-60"}
+      `}
           style={{
             backgroundColor,
             width: daySize,
             height: daySize,
-            margin: 1,
+            padding: 2,
           }}
           onPress={() => isCurrentDay && onPress?.(date)}
           disabled={!isCurrentDay}
@@ -219,7 +196,21 @@ export default function CalendarComponent() {
               : "This date is not selectable"
           }
         >
-          <DayContent date={date} task={task} textColor={textColor} />
+          <Text
+            className={`text-${textColor} font-semibold text-center`}
+            style={{ fontSize: daySize * 0.35 }}
+          >
+            {date.day}
+          </Text>
+          {task && (
+            <Text
+              className={`text-${textColor} text-center w-full mt-1`}
+              style={{ fontSize: daySize * 0.18 }}
+              numberOfLines={2}
+            >
+              {task}
+            </Text>
+          )}
         </TouchableOpacity>
       );
     }
@@ -227,8 +218,8 @@ export default function CalendarComponent() {
 
   return (
     <ScrollView className="flex-1 bg-white dark:bg-gray-900">
-      <View className="p-4 sm:p-6 md:p-8 lg:p-10">
-        <View className="mb-6 flex-row justify-between items-center">
+      <View className="p-4">
+        <View className="mb-4 flex-row justify-between items-center">
           <Text className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             Workout Calendar
           </Text>
@@ -240,7 +231,6 @@ export default function CalendarComponent() {
             <Feather name="calendar" size={24} color="black" />
           </TouchableOpacity>
         </View>
-
         <Calendar
           markedDates={markedDates}
           current={currentDate}
@@ -264,49 +254,14 @@ export default function CalendarComponent() {
             textDayFontFamily: "System",
             textMonthFontFamily: "System",
             textDayHeaderFontFamily: "System",
-            textDayFontWeight: "400",
+            textDayFontWeight: "500",
             textMonthFontWeight: "bold",
             textDayHeaderFontWeight: "300",
             textDayFontSize: 16,
-            textMonthFontSize: 18,
+            textMonthFontSize: 20,
             textDayHeaderFontSize: 14,
           }}
         />
-
-        <View className="mt-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-          <Text className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Today's Workout: {currentDate}
-          </Text>
-          <View className="flex-row justify-around">
-            {["done", "skipped"].map((status) => (
-              <TouchableOpacity
-                key={status}
-                className={`${
-                  status === "done"
-                    ? "bg-gray-800 dark:bg-gray-200"
-                    : "bg-gray-300 dark:bg-gray-600"
-                } py-3 px-6 rounded-full ${
-                  hasInteractedToday ? "opacity-50" : ""
-                }`}
-                onPress={() =>
-                  updateWorkoutStatus(currentDate, status as WorkoutStatus)
-                }
-                accessibilityLabel={`Mark workout as ${status}`}
-                disabled={hasInteractedToday}
-              >
-                <Text
-                  className={`${
-                    status === "done"
-                      ? "text-white dark:text-gray-800"
-                      : "text-gray-800 dark:text-gray-200"
-                  } font-semibold text-lg`}
-                >
-                  {status === "done" ? "Done" : "Skip"}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
       </View>
     </ScrollView>
   );
