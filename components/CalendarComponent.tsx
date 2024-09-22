@@ -45,6 +45,7 @@ export default function CalendarComponent() {
   );
   const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false);
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
+  const [calendarKey, setCalendarKey] = useState(0);
 
   const checkUserInteractionForToday = useCallback(async () => {
     try {
@@ -218,13 +219,17 @@ export default function CalendarComponent() {
           </Text>
           <TouchableOpacity
             className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
-            onPress={() => setSelectedDate(currentDate)}
+            onPress={() => {
+              setSelectedDate(currentDate);
+              setCalendarKey((prevKey) => prevKey + 1); // This will force a re-render
+            }}
             accessibilityLabel="Go to current month"
           >
             <Feather name="calendar" size={24} color="black" />
           </TouchableOpacity>
         </View>
         <Calendar
+          key={calendarKey}
           markedDates={markedDates}
           current={currentDate}
           dayComponent={CustomDay}
