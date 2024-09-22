@@ -45,7 +45,6 @@ export default function CalendarComponent() {
   );
   const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false);
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
-  const { width, height } = useWindowDimensions();
 
   const checkUserInteractionForToday = useCallback(async () => {
     try {
@@ -170,15 +169,16 @@ export default function CalendarComponent() {
 
       return (
         <TouchableOpacity
-          className={`items-center justify-center rounded-xl
-          ${isToday ? "border-2 border-black" : ""}
-          ${isCurrentDay ? "opacity-100" : "opacity-60"}
-        `}
+          className={`items-center justify-center  border-2 dark:border-white 
+            ${isToday ? "border-2 border-blue-300" : ""}
+            ${isCurrentDay ? "opacity-100" : "opacity-60"}
+            `}
           style={{
             backgroundColor,
-            width: 50, // Fixed width
-            height: 120, // Fixed height
-            padding: 2,
+            width: "100%", // Fixed width
+            height: 130, // Fixed height
+            marginBottom: 0,
+            marginTop: 0,
           }}
           onPress={() => isCurrentDay && onPress?.(date)}
           disabled={!isCurrentDay}
@@ -190,14 +190,14 @@ export default function CalendarComponent() {
           }
         >
           <Text
-            className={`text-${textColor} font-semibold text-center`}
+            className={`dark:text-white font-semibold text-center`}
             style={{ fontSize: 18 }} // Fixed font size
           >
             {date.day}
           </Text>
           {task && (
             <Text
-              className={`text-${textColor} text-center w-full mt-1`}
+              className={`dark:text-white text-center w-full `}
               style={{ fontSize: 12 }} // Fixed font size
               numberOfLines={2}
             >
@@ -210,8 +210,8 @@ export default function CalendarComponent() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-white dark:bg-gray-900">
-      <View className="p-4">
+    <ScrollView>
+      <View className="">
         <View className="mb-4 flex-row justify-between items-center">
           <Text className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             Workout Calendar
@@ -230,7 +230,17 @@ export default function CalendarComponent() {
           dayComponent={CustomDay}
           onDayPress={handleDayPress}
           initialDate={currentDate}
-          className="rounded-lg shadow-lg overflow-hidden"
+          theme={{
+            "stylesheet.calendar.main": {
+              week: {
+                marginTop: 0,
+                marginBottom: 0,
+                flex: 1,
+                flexDirection: "row",
+              },
+            },
+            calendarBackground: "transparent",
+          }}
         />
       </View>
     </ScrollView>
