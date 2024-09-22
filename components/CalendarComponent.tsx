@@ -231,29 +231,6 @@ export default function CalendarComponent() {
           onDayPress={handleDayPress}
           initialDate={currentDate}
           className="rounded-lg shadow-lg overflow-hidden"
-          theme={{
-            calendarBackground: "#ffffff",
-            textSectionTitleColor: "#b6c1cd",
-            selectedDayBackgroundColor: "#000000",
-            selectedDayTextColor: "#ffffff",
-            todayTextColor: "#000000",
-            dayTextColor: "#2d4150",
-            textDisabledColor: "#d9e1e8",
-            dotColor: "#000000",
-            selectedDotColor: "#ffffff",
-            arrowColor: "black",
-            monthTextColor: "black",
-            indicatorColor: "black",
-            textDayFontFamily: "System",
-            textMonthFontFamily: "System",
-            textDayHeaderFontFamily: "System",
-            textDayFontWeight: "500",
-            textMonthFontWeight: "bold",
-            textDayHeaderFontWeight: "300",
-            textDayFontSize: 16,
-            textMonthFontSize: 20,
-            textDayHeaderFontSize: 14,
-          }}
         />
       </View>
     </ScrollView>
