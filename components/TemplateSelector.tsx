@@ -13,7 +13,9 @@ import { supabase } from "@/utils/supabase";
 import { Template } from "../utils/calendarTypes";
 import { useAppContext } from "@/context/AppContext";
 import { Link, useRouter, useFocusEffect } from "expo-router";
-import EvilIcons from "@expo/vector-icons/EvilIcons";
+import { EvilIcons } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TemplateSelectorPage() {
   const [predefinedTemplates, setPredefinedTemplates] = useState<Template[]>(
@@ -21,10 +23,10 @@ export default function TemplateSelectorPage() {
   );
   const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { applyTemplate, resetCurrentDayInteraction } = useAppContext();
+  const { applyTemplate } = useAppContext();
   const [isApplying, setIsApplying] = useState(false);
-
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
 
   const fetchPredefinedTemplates = async () => {
     const { data, error } = await supabase
@@ -134,99 +136,123 @@ export default function TemplateSelectorPage() {
     item: Template;
     isUserTemplate: boolean;
   }) => (
-    <View className="bg-white p-4 mb-2 rounded-lg shadow flex-row justify-between items-center">
+    <View className="bg-white dark:bg-gray-800 p-4 mb-2 rounded-lg shadow-md">
       <TouchableOpacity
         onPress={() => handleSelectTemplate(item)}
-        className="flex-1"
+        className="flex-row justify-between items-center"
       >
-        <Text className="text-lg font-bold">{item.name}</Text>
-        <Text className="text-sm text-gray-600">{item.description}</Text>
-        <Text className="text-xs text-gray-500 mt-1">
-          {item.tasks.length} day program
-        </Text>
+        <View className="flex-1">
+          <Text className="text-lg font-bold text-gray-800 dark:text-white">
+            {item.name}
+          </Text>
+          <Text className="text-sm text-gray-600 dark:text-gray-300">
+            {item.description}
+          </Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {item.tasks.length} day program
+          </Text>
+        </View>
+        {isUserTemplate && (
+          <TouchableOpacity
+            onPress={() => handleDeleteTemplate(item.id)}
+            className="ml-2 p-2"
+          >
+            <EvilIcons
+              name="trash"
+              color={colorScheme === "dark" ? "#E5E7EB" : "#EF4444"}
+              size={24}
+            />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
-      {isUserTemplate && (
-        <TouchableOpacity
-          onPress={() => handleDeleteTemplate(item.id)}
-          className="ml-2"
-        >
-          <EvilIcons name="trash" color="red" size={24} />
-        </TouchableOpacity>
-      )}
     </View>
   );
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={{ marginTop: 10 }}>Loading templates...</Text>
+      <View className="flex-1 justify-center items-center bg-white dark:bg-gray-900">
+        <ActivityIndicator
+          size="large"
+          color={colorScheme === "dark" ? "#FFFFFF" : "#0000FF"}
+        />
+        <Text className="mt-4 text-gray-800 dark:text-gray-200">
+          Loading templates...
+        </Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 p-4">
-      <Text className="text-xl font-bold mb-4">Workout Templates</Text>
-
-      <Text className="text-lg font-semibold mt-4 mb-2">
-        Predefined Workouts
-      </Text>
-      <FlatList
-        data={predefinedTemplates}
-        renderItem={({ item }) =>
-          renderTemplateItem({ item, isUserTemplate: false })
-        }
-        keyExtractor={(item) => item.id.toString()}
-      />
-
-      <Text className="text-lg font-semibold mt-4 mb-2">Created Workouts</Text>
-      <FlatList
-        data={userTemplates}
-        renderItem={({ item }) =>
-          renderTemplateItem({ item, isUserTemplate: true })
-        }
-        keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <Text className="text-gray-500">No created workouts yet</Text>
-        }
-      />
-
-      <Link href="/templateForm" asChild>
-        <TouchableOpacity className="bg-blue-500 p-3 rounded mt-4">
-          <Text className="text-white text-center font-semibold">
-            Create New Template
+    <SafeAreaView className="flex-1">
+      <View className="flex-1 bg-gray-100 dark:bg-gray-900">
+        <View className="p-4 bg-white dark:bg-gray-800 shadow-sm">
+          <Text className="text-xl font-bold text-gray-800 dark:text-white mt-2">
+            Workout Templates
           </Text>
-        </TouchableOpacity>
-      </Link>
-
-      <Modal
-        transparent={true}
-        animationType="fade"
-        visible={isApplying}
-        onRequestClose={() => {}}
-      >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.5)",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "white",
-              padding: 20,
-              borderRadius: 10,
-              alignItems: "center",
-            }}
-          >
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text style={{ marginTop: 10 }}>Applying template...</Text>
-          </View>
         </View>
-      </Modal>
-    </View>
+
+        <FlatList
+          className="flex-1 px-4 pt-4"
+          ListHeaderComponent={
+            <>
+              <Text className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">
+                Predefined Workouts
+              </Text>
+            </>
+          }
+          data={predefinedTemplates}
+          renderItem={({ item }) =>
+            renderTemplateItem({ item, isUserTemplate: false })
+          }
+          keyExtractor={(item) => item.id.toString()}
+          ListFooterComponent={
+            <>
+              <Text className="text-lg font-semibold mt-6 mb-2 text-gray-800 dark:text-white">
+                Created Workouts
+              </Text>
+              {userTemplates.length === 0 && (
+                <Text className="text-gray-500 dark:text-gray-400">
+                  No created workouts yet
+                </Text>
+              )}
+              {userTemplates.map((item) => (
+                <React.Fragment key={item.id.toString()}>
+                  {renderTemplateItem({ item, isUserTemplate: true })}
+                </React.Fragment>
+              ))}
+            </>
+          }
+        />
+
+        <View className="p-4">
+          <Link href="/templateForm" asChild>
+            <TouchableOpacity className="bg-blue-500 dark:bg-blue-600 p-4 rounded-lg">
+              <Text className="text-white text-center font-semibold">
+                Create New Template
+              </Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={isApplying}
+          onRequestClose={() => {}}
+        >
+          <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
+            <View className="bg-white dark:bg-gray-800 p-6 rounded-lg items-center">
+              <ActivityIndicator
+                size="large"
+                color={colorScheme === "dark" ? "#FFFFFF" : "#0000FF"}
+              />
+              <Text className="mt-4 text-gray-800 dark:text-gray-200">
+                Applying template...
+              </Text>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </SafeAreaView>
   );
 }

@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar, DateData } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppContext } from "@/context/AppContext";
@@ -176,8 +177,8 @@ export default function CalendarComponent() {
             `}
           style={{
             backgroundColor,
-            width: "100%", // Fixed width
-            height: 130, // Fixed height
+            width: "100%",
+            height: 120,
             marginBottom: 0,
             marginTop: 0,
           }}
@@ -211,43 +212,45 @@ export default function CalendarComponent() {
   );
 
   return (
-    <ScrollView>
-      <View className="">
-        <View className="mb-4 flex-row justify-between items-center">
-          <Text className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            Workout Calendar
-          </Text>
-          <TouchableOpacity
-            className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
-            onPress={() => {
-              setSelectedDate(currentDate);
-              setCalendarKey((prevKey) => prevKey + 1); // This will force a re-render
-            }}
-            accessibilityLabel="Go to current month"
-          >
-            <Feather name="calendar" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-        <Calendar
-          key={calendarKey}
-          markedDates={markedDates}
-          current={currentDate}
-          dayComponent={CustomDay}
-          onDayPress={handleDayPress}
-          initialDate={currentDate}
-          theme={{
-            "stylesheet.calendar.main": {
-              week: {
-                marginTop: 0,
-                marginBottom: 0,
-                flex: 1,
-                flexDirection: "row",
+    <SafeAreaView>
+      <ScrollView>
+        <View className="">
+          <View className="mb-4 flex-row justify-between items-center">
+            <Text className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+              Workout Calendar
+            </Text>
+            <TouchableOpacity
+              className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
+              onPress={() => {
+                setSelectedDate(currentDate);
+                setCalendarKey((prevKey) => prevKey + 1); // This will force a re-render
+              }}
+              accessibilityLabel="Go to current month"
+            >
+              <Feather name="calendar" size={24} color="black" />
+            </TouchableOpacity>
+          </View>
+          <Calendar
+            key={calendarKey}
+            markedDates={markedDates}
+            current={currentDate}
+            dayComponent={CustomDay}
+            onDayPress={handleDayPress}
+            initialDate={currentDate}
+            theme={{
+              "stylesheet.calendar.main": {
+                week: {
+                  marginTop: 0,
+                  marginBottom: 0,
+                  flex: 1,
+                  flexDirection: "row",
+                },
               },
-            },
-            calendarBackground: "transparent",
-          }}
-        />
-      </View>
-    </ScrollView>
+              calendarBackground: "transparent",
+            }}
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
