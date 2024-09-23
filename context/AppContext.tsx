@@ -142,20 +142,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     async (template: Template) => {
       const today = new Date();
       const newTasks: TasksState = {};
+      const templateLength = template.tasks.length;
 
-      for (let i = 0; i < 52; i++) {
-        template.tasks.forEach((task) => {
-          const date = new Date(today);
-          date.setDate(date.getDate() + i * 7 + task.day - 1);
-          const dateString = date.toISOString().split("T")[0];
+      // Generate tasks for a full year (365 days)
+      for (let i = 0; i < 365; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        const dateString = date.toISOString().split("T")[0];
 
-          newTasks[dateString] = [
-            {
-              name: task.exercise,
-              completed: false,
-            },
-          ];
-        });
+        const taskIndex = i % templateLength;
+        const task = template.tasks[taskIndex];
+
+        newTasks[dateString] = [
+          {
+            name: task.exercise,
+            completed: false,
+          },
+        ];
       }
 
       setTasks(newTasks);
@@ -166,7 +169,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     },
     [checkAndScheduleWorkout, resetCurrentDayInteraction]
   );
-
   const loadData = async () => {
     try {
       const storedTasks = await AsyncStorage.getItem("tasks");
