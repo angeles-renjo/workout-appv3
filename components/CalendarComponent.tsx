@@ -112,6 +112,7 @@ export default function CalendarComponent() {
             style: "cancel",
           },
           { text: "Done", onPress: () => updateWorkoutStatus(date, "done") },
+          { text: "Cancel", style: "cancel" },
         ]);
       }
     },
