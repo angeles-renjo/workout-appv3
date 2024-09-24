@@ -1,9 +1,21 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Platform, Modal } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Platform,
+  Modal,
+  useColorScheme,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppContext } from "../context/AppContext";
+import { Colors } from "@/constants/Colors";
+import { Feather } from "@expo/vector-icons";
 
 export default function WorkoutNotification() {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
+
   const { notificationTime, setNotificationTime, checkAndScheduleWorkout } =
     useAppContext();
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -37,7 +49,7 @@ export default function WorkoutNotification() {
     const minutes = time.minute.toString().padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
+    hours = hours ? hours : 12;
     const formattedHours = hours.toString().padStart(2, "0");
     return `${formattedHours}:${minutes} ${ampm}`;
   };
@@ -46,8 +58,12 @@ export default function WorkoutNotification() {
 
   const renderIOSPicker = () => (
     <Modal transparent={true} visible={showTimePicker} animationType="slide">
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
-        <View style={{ backgroundColor: "white", padding: 16 }}>
+      <View className="flex-1 justify-end">
+        <View
+          className={`${
+            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
+          } p-4 rounded-t-3xl`}
+        >
           <DateTimePicker
             testID="dateTimePicker"
             value={notificationDate}
@@ -55,19 +71,14 @@ export default function WorkoutNotification() {
             is24Hour={false}
             display="spinner"
             onChange={onChange}
+            textColor={colors.text}
           />
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              marginTop: 16,
-            }}
-          >
-            <TouchableOpacity onPress={hidePicker} style={{ padding: 10 }}>
-              <Text style={{ color: "red" }}>Cancel</Text>
+          <View className="flex-row justify-between mt-4">
+            <TouchableOpacity onPress={hidePicker} className="p-2">
+              <Text className="text-red-500 font-semibold">Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={confirmTime} style={{ padding: 10 }}>
-              <Text style={{ color: "blue" }}>Confirm</Text>
+            <TouchableOpacity onPress={confirmTime} className="p-2">
+              <Text className="text-blue-500 font-semibold">Confirm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -76,19 +87,44 @@ export default function WorkoutNotification() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View
+      className={`flex-1 ${
+        colorScheme === "dark" ? "bg-gray-900" : "bg-gray-100"
+      }`}
+    >
       <View className="flex-1 px-6 justify-center items-center">
-        <View className="bg-white rounded-xl shadow-lg p-6 w-full mb-6">
-          <Text className="text-xl font-semibold mb-2 text-gray-800">
+        <View
+          className={`${
+            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
+          } rounded-xl shadow-lg p-6 w-full mb-6`}
+        >
+          <Text
+            className={`text-xl font-semibold mb-2 ${
+              colorScheme === "dark" ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
             Notification Time
           </Text>
-          <Text className="text-5xl font-bold text-blue-500 mb-4">
+          <Text
+            className={`text-5xl font-bold ${
+              colorScheme === "dark" ? "text-blue-400" : "text-blue-500"
+            } mb-4`}
+          >
             {formattedTime}
           </Text>
           <TouchableOpacity
             onPress={showPicker}
-            className="bg-blue-500 py-3 px-6 rounded-full"
+            className={`${
+              colorScheme === "dark" ? "bg-blue-600" : "bg-blue-500"
+            } py-3 px-6 rounded-full flex-row items-center justify-center`}
+            accessibilityLabel="Change notification time"
           >
+            <Feather
+              name="clock"
+              size={20}
+              color="white"
+              style={{ marginRight: 8 }}
+            />
             <Text className="text-white text-center font-semibold text-lg">
               Change Time
             </Text>
@@ -97,8 +133,17 @@ export default function WorkoutNotification() {
 
         <TouchableOpacity
           onPress={checkAndScheduleWorkout}
-          className="bg-green-500 py-4 px-6 rounded-full w-full"
+          className={`${
+            colorScheme === "dark" ? "bg-green-600" : "bg-green-500"
+          } py-4 px-6 rounded-full w-full flex-row items-center justify-center`}
+          accessibilityLabel="Check and schedule workout"
         >
+          <Feather
+            name="check-circle"
+            size={24}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
           <Text className="text-white text-center font-bold text-lg">
             Check and Schedule Workout
           </Text>
@@ -115,6 +160,7 @@ export default function WorkoutNotification() {
               is24Hour={false}
               display="default"
               onChange={onChange}
+              textColor={colors.text}
             />
           )}
     </View>
