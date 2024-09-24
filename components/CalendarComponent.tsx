@@ -4,11 +4,9 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  useWindowDimensions,
   Alert,
-  useColorScheme as useNativeColorScheme,
+  useColorScheme,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar, DateData } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppContext } from "@/context/AppContext";
@@ -20,7 +18,7 @@ import {
 } from "../utils/calendarTypes";
 import { getBackgroundColor, getTextColor } from "@/utils/calendarUtils";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { Colors } from "@/constants/Colors";
 
 const shiftTasksAfterSkippedDate = (
   tasks: TasksState,
@@ -42,9 +40,8 @@ const shiftTasksAfterSkippedDate = (
 };
 
 export default function CalendarComponent() {
-  const nativeColorScheme = useNativeColorScheme();
-  const { colorScheme, setColorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>(
@@ -55,10 +52,9 @@ export default function CalendarComponent() {
   const [calendarKey, setCalendarKey] = useState(0);
 
   useEffect(() => {
-    if (nativeColorScheme) {
-      setColorScheme(nativeColorScheme);
-    }
-  }, [nativeColorScheme, setColorScheme]);
+    loadSavedData();
+    setSelectedDate(currentDate);
+  }, []);
 
   const checkUserInteractionForToday = useCallback(async () => {
     try {
@@ -70,11 +66,6 @@ export default function CalendarComponent() {
       console.error("Error checking interaction for today:", error);
     }
   }, [currentDate]);
-
-  useEffect(() => {
-    loadSavedData();
-    setSelectedDate(currentDate);
-  }, []);
 
   useEffect(() => {
     checkUserInteractionForToday();
@@ -185,7 +176,7 @@ export default function CalendarComponent() {
       return (
         <TouchableOpacity
           className={`items-center justify-center border-[1px] 
-            ${isDark ? "border-white" : "border-gray-300"}
+            ${colorScheme === "dark" ? "border-gray-700" : "border-gray-300"}
             ${isToday ? "border-4 border-blue-500" : ""}
             ${isCurrentDay ? "opacity-100" : "opacity-60"}
           `}
@@ -206,19 +197,15 @@ export default function CalendarComponent() {
           }
         >
           <Text
-            className={`${
-              isDark ? "text-white" : "text-black"
-            } font-semibold text-center`}
-            style={{ fontSize: 18 }}
+            style={{ fontSize: 18, color: colors.text }}
+            className="font-semibold text-center"
           >
             {date.day}
           </Text>
           {task && (
             <Text
-              className={`${
-                isDark ? "text-white" : "text-black"
-              } text-center w-full`}
-              style={{ fontSize: 12 }}
+              style={{ fontSize: 12, color: colors.text }}
+              className="text-center w-full"
               numberOfLines={2}
             >
               {task}
@@ -230,31 +217,27 @@ export default function CalendarComponent() {
   );
 
   return (
-    <ScrollView className={isDark ? "bg-gray-900" : "bg-white"}>
+    <ScrollView
+      style={{ backgroundColor: colors.background, paddingVertical: 2 }}
+    >
       <View>
         <View className="mb-4 flex-row justify-between items-center">
-          <Text
-            className={`text-2xl font-bold ${
-              isDark ? "text-gray-200" : "text-gray-800"
-            }`}
-          >
+          <Text style={{ color: colors.text }} className="text-2xl font-bold">
             Workout Calendar
           </Text>
           <TouchableOpacity
-            className={`${
-              isDark ? "bg-gray-700" : "bg-gray-200"
-            } rounded-full p-2`}
+            style={{
+              backgroundColor:
+                colorScheme === "dark" ? colors.icon : colors.background,
+            }}
+            className="rounded-full p-2"
             onPress={() => {
               setSelectedDate(currentDate);
               setCalendarKey((prevKey) => prevKey + 1);
             }}
             accessibilityLabel="Go to current month"
           >
-            <Feather
-              name="calendar"
-              size={24}
-              color={isDark ? "white" : "black"}
-            />
+            <Feather name="calendar" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         <Calendar
@@ -275,20 +258,20 @@ export default function CalendarComponent() {
             },
             "stylesheet.calendar.header": {
               dayHeader: {
-                color: isDark ? "white" : "black",
+                color: colors.text,
                 fontSize: 12,
               },
               monthText: {
-                color: isDark ? "white" : "black",
+                color: colors.text,
                 fontSize: 18,
               },
             },
             calendarBackground: "transparent",
-            textSectionTitleColor: isDark ? "white" : "black",
-            todayTextColor: isDark ? "white" : "black",
-            dayTextColor: isDark ? "white" : "black",
-            textDisabledColor: isDark ? "#4a5568" : "#d1d5db",
-            arrowColor: isDark ? "white" : "black",
+            textSectionTitleColor: colors.text,
+            todayTextColor: colors.tint,
+            dayTextColor: colors.text,
+            textDisabledColor: colorScheme === "dark" ? "#4a5568" : "#d1d5db",
+            arrowColor: colors.text,
           }}
         />
       </View>
