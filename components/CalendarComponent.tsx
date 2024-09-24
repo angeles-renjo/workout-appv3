@@ -6,6 +6,7 @@ import {
   ScrollView,
   useWindowDimensions,
   Alert,
+  useColorScheme as useNativeColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar, DateData } from "react-native-calendars";
@@ -19,6 +20,7 @@ import {
 } from "../utils/calendarTypes";
 import { getBackgroundColor, getTextColor } from "@/utils/calendarUtils";
 import { Feather } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
 
 const shiftTasksAfterSkippedDate = (
   tasks: TasksState,
@@ -40,6 +42,10 @@ const shiftTasksAfterSkippedDate = (
 };
 
 export default function CalendarComponent() {
+  const nativeColorScheme = useNativeColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -47,6 +53,12 @@ export default function CalendarComponent() {
   const [hasInteractedToday, setHasInteractedToday] = useState<boolean>(false);
   const { tasks, setTasks, workoutStatus, setWorkoutStatus } = useAppContext();
   const [calendarKey, setCalendarKey] = useState(0);
+
+  useEffect(() => {
+    if (nativeColorScheme) {
+      setColorScheme(nativeColorScheme);
+    }
+  }, [nativeColorScheme, setColorScheme]);
 
   const checkUserInteractionForToday = useCallback(async () => {
     try {
@@ -171,10 +183,11 @@ export default function CalendarComponent() {
 
       return (
         <TouchableOpacity
-          className={`items-center justify-center  border-2 dark:border-white 
-            ${isToday ? "border-2 border-blue-300" : ""}
+          className={`items-center justify-center border-[1px] 
+            ${isDark ? "border-white" : "border-gray-300"}
+            ${isToday ? "border-4 border-blue-500" : ""}
             ${isCurrentDay ? "opacity-100" : "opacity-60"}
-            `}
+          `}
           style={{
             backgroundColor,
             width: "100%",
@@ -192,15 +205,19 @@ export default function CalendarComponent() {
           }
         >
           <Text
-            className={`dark:text-white font-semibold text-center`}
-            style={{ fontSize: 18 }} // Fixed font size
+            className={`${
+              isDark ? "text-white" : "text-black"
+            } font-semibold text-center`}
+            style={{ fontSize: 18 }}
           >
             {date.day}
           </Text>
           {task && (
             <Text
-              className={`dark:text-white text-center w-full `}
-              style={{ fontSize: 12 }} // Fixed font size
+              className={`${
+                isDark ? "text-white" : "text-black"
+              } text-center w-full`}
+              style={{ fontSize: 12 }}
               numberOfLines={2}
             >
               {task}
@@ -212,45 +229,68 @@ export default function CalendarComponent() {
   );
 
   return (
-    <SafeAreaView>
-      <ScrollView>
-        <View className="">
-          <View className="mb-4 flex-row justify-between items-center">
-            <Text className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-              Workout Calendar
-            </Text>
-            <TouchableOpacity
-              className="bg-gray-200 dark:bg-gray-700 rounded-full p-2"
-              onPress={() => {
-                setSelectedDate(currentDate);
-                setCalendarKey((prevKey) => prevKey + 1); // This will force a re-render
-              }}
-              accessibilityLabel="Go to current month"
-            >
-              <Feather name="calendar" size={24} color="black" />
-            </TouchableOpacity>
-          </View>
-          <Calendar
-            key={calendarKey}
-            markedDates={markedDates}
-            current={currentDate}
-            dayComponent={CustomDay}
-            onDayPress={handleDayPress}
-            initialDate={currentDate}
-            theme={{
-              "stylesheet.calendar.main": {
-                week: {
-                  marginTop: 0,
-                  marginBottom: 0,
-                  flex: 1,
-                  flexDirection: "row",
-                },
-              },
-              calendarBackground: "transparent",
+    <ScrollView className={isDark ? "bg-gray-900" : "bg-white"}>
+      <View className="p-4">
+        <View className="mb-4 flex-row justify-between items-center">
+          <Text
+            className={`text-2xl font-bold ${
+              isDark ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
+            Workout Calendar
+          </Text>
+          <TouchableOpacity
+            className={`${
+              isDark ? "bg-gray-700" : "bg-gray-200"
+            } rounded-full p-2`}
+            onPress={() => {
+              setSelectedDate(currentDate);
+              setCalendarKey((prevKey) => prevKey + 1);
             }}
-          />
+            accessibilityLabel="Go to current month"
+          >
+            <Feather
+              name="calendar"
+              size={24}
+              color={isDark ? "white" : "black"}
+            />
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        <Calendar
+          key={calendarKey}
+          markedDates={markedDates}
+          current={currentDate}
+          dayComponent={CustomDay}
+          onDayPress={handleDayPress}
+          initialDate={currentDate}
+          theme={{
+            "stylesheet.calendar.main": {
+              week: {
+                marginTop: 0,
+                marginBottom: 0,
+                flex: 1,
+                flexDirection: "row",
+              },
+            },
+            "stylesheet.calendar.header": {
+              dayHeader: {
+                color: isDark ? "white" : "black",
+                fontSize: 12,
+              },
+              monthText: {
+                color: isDark ? "white" : "black",
+                fontSize: 18,
+              },
+            },
+            calendarBackground: "transparent",
+            textSectionTitleColor: isDark ? "white" : "black",
+            todayTextColor: isDark ? "white" : "black",
+            dayTextColor: isDark ? "white" : "black",
+            textDisabledColor: isDark ? "#4a5568" : "#d1d5db",
+            arrowColor: isDark ? "white" : "black",
+          }}
+        />
+      </View>
+    </ScrollView>
   );
 }
