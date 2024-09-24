@@ -217,11 +217,9 @@ export default function CalendarComponent() {
   );
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background, paddingVertical: 2 }}
-    >
+    <ScrollView style={{ backgroundColor: colors.background }}>
       <View>
-        <View className="mb-4 flex-row justify-between items-center">
+        <View className="mb-4 flex-row justify-between items-center p-4">
           <Text style={{ color: colors.text }} className="text-2xl font-bold">
             Workout Calendar
           </Text>

@@ -15,7 +15,6 @@ import { useAppContext } from "@/context/AppContext";
 import { Link, useRouter, useFocusEffect } from "expo-router";
 import { EvilIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TemplateSelectorPage() {
   const [predefinedTemplates, setPredefinedTemplates] = useState<Template[]>(
@@ -183,9 +182,9 @@ export default function TemplateSelectorPage() {
   }
 
   return (
-    <SafeAreaView className="flex-1">
+    <View className="flex-1">
       <View className="flex-1 bg-gray-100 dark:bg-gray-900">
-        <View className="p-4 bg-white dark:bg-gray-800 shadow-sm">
+        <View className="p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm">
           <Text className="text-xl font-bold text-gray-800 dark:text-white mt-2">
             Workout Templates
           </Text>
@@ -253,6 +252,6 @@ export default function TemplateSelectorPage() {
           </View>
         </Modal>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -1,10 +1,10 @@
 import TemplateCreator from "@/components/TemplateCreator";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 const Test = () => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <TemplateCreator />
-    </SafeAreaView>
+    </View>
   );
 };
 

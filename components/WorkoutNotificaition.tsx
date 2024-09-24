@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Platform,
-  SafeAreaView,
-  Modal,
-} from "react-native";
+import { View, Text, TouchableOpacity, Platform, Modal } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppContext } from "../context/AppContext";
 
@@ -83,7 +76,7 @@ export default function WorkoutNotification() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <View className="flex-1 px-6 justify-center items-center">
         <View className="bg-white rounded-xl shadow-lg p-6 w-full mb-6">
           <Text className="text-xl font-semibold mb-2 text-gray-800">
@@ -124,6 +117,6 @@ export default function WorkoutNotification() {
               onChange={onChange}
             />
           )}
-    </SafeAreaView>
+    </View>
   );
 }
