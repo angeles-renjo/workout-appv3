@@ -191,7 +191,7 @@ export default function CalendarComponent() {
           style={{
             backgroundColor,
             width: "100%",
-            height: 120,
+            height: 130,
             marginBottom: 0,
             marginTop: 0,
           }}
@@ -230,7 +230,7 @@ export default function CalendarComponent() {
 
   return (
     <ScrollView className={isDark ? "bg-gray-900" : "bg-white"}>
-      <View className="p-4">
+      <View>
         <View className="mb-4 flex-row justify-between items-center">
           <Text
             className={`text-2xl font-bold ${
