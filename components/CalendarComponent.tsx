@@ -183,7 +183,7 @@ export default function CalendarComponent() {
           style={{
             backgroundColor,
             width: "100%",
-            height: 130,
+            height: 115,
             marginBottom: 0,
             marginTop: 0,
           }}
@@ -219,8 +219,8 @@ export default function CalendarComponent() {
   return (
     <ScrollView style={{ backgroundColor: colors.background }}>
       <View>
-        <View className="mb-4 flex-row justify-between items-center p-4">
-          <Text style={{ color: colors.text }} className="text-2xl font-bold">
+        <View className=" flex-row justify-between items-center p-4">
+          <Text style={{ color: colors.text }} className="text-xl font-bold">
             Workout Calendar
           </Text>
           <TouchableOpacity
@@ -235,7 +235,7 @@ export default function CalendarComponent() {
             }}
             accessibilityLabel="Go to current month"
           >
-            <Feather name="calendar" size={24} color={colors.text} />
+            <Feather name="calendar" size={18} color={colors.text} />
           </TouchableOpacity>
         </View>
         <Calendar
