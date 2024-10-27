@@ -109,6 +109,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           title: "Today's Workout",
           body: `Don't forget your ${workout} workout today!`,
           data: { workout },
+          sticky: true,
+          autoDismiss: false,
         },
         trigger: {
           date: scheduledTime,

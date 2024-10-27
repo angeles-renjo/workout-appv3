@@ -24,20 +24,26 @@ export default function WorkoutNotification() {
   const showPicker = () => setShowTimePicker(true);
   const hidePicker = () => setShowTimePicker(false);
 
-  const onChange = (event: any, selectedDate?: Date) => {
+  const onChange = async (event: any, selectedDate?: Date) => {
     if (selectedDate) {
-      setTempTime({
+      const newTime = {
         hour: selectedDate.getHours(),
         minute: selectedDate.getMinutes(),
-      });
-    }
-    if (Platform.OS === "android") {
+      };
+      setTempTime(newTime);
+
+      // For Android, update immediately
+      if (Platform.OS === "android") {
+        await setNotificationTime(newTime);
+        hidePicker();
+      }
+    } else {
       hidePicker();
     }
   };
 
-  const confirmTime = () => {
-    setNotificationTime(tempTime);
+  const confirmTime = async () => {
+    await setNotificationTime(tempTime);
     hidePicker();
   };
 
