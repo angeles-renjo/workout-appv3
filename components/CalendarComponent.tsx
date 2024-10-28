@@ -270,7 +270,9 @@ export default function CalendarComponent() {
           key={calendarKey}
           markedDates={markedDates}
           current={currentDate}
-          dayComponent={CustomDay}
+          dayComponent={(props: DayProps) => (
+            <CustomDay {...props} currentDate={currentDate} />
+          )}
           onDayPress={handleDayPress}
           initialDate={currentDate}
           theme={calendarTheme}
