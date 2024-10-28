@@ -15,6 +15,7 @@ export interface MarkedDate {
   task?: string;
   workoutStatus?: WorkoutStatus;
   selected?: boolean;
+  isCurrentDay?: boolean; // Added this instead of currentDate
 }
 
 export type MarkedDates = Record<string, MarkedDate>;
@@ -24,6 +25,7 @@ export interface DayProps {
   state?: "selected" | "disabled" | "today" | "";
   marking?: MarkedDate;
   onPress?: (date: DateData) => void;
+  currentDate?: string; // Added as a prop instead of in marking
 }
 
 export interface Template {
