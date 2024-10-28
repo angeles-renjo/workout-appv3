@@ -60,16 +60,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const setNotificationTime = async (time: NotificationTime) => {
-    try {
-      await AsyncStorage.setItem("notificationTime", JSON.stringify(time));
-      setNotificationTimeState(time);
-      await checkAndScheduleWorkout();
-    } catch (error) {
-      console.error("Error saving notification time:", error);
-    }
-  };
-
   const resetCurrentDayInteraction = useCallback(async () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
@@ -139,6 +129,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       );
     }
   }, [tasks, workoutStatus, notificationTime, sendWorkoutNotification]);
+
+  const setNotificationTime = useCallback(
+    async (time: NotificationTime) => {
+      console.log("Setting notification time:", time);
+      try {
+        // First update the state
+        setNotificationTimeState(time);
+
+        // Then save to storage
+        await AsyncStorage.setItem("notificationTime", JSON.stringify(time));
+
+        // Finally schedule the workout notification
+        console.log("Notification time saved, scheduling workout...");
+        await checkAndScheduleWorkout();
+
+        console.log("Notification time update complete:", time);
+      } catch (error) {
+        console.error("Error saving notification time:", error);
+        // Revert state if save fails
+        setNotificationTimeState(notificationTime);
+        throw error;
+      }
+    },
+    [notificationTime, checkAndScheduleWorkout]
+  );
 
   const applyTemplate = useCallback(
     async (template: Template) => {

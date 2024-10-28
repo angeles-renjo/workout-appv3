@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -20,37 +20,87 @@ export default function WorkoutNotification() {
     useAppContext();
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempTime, setTempTime] = useState(notificationTime);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const showPicker = () => setShowTimePicker(true);
-  const hidePicker = () => setShowTimePicker(false);
+  const showPicker = useCallback(() => {
+    if (!isProcessing) {
+      setShowTimePicker(true);
+    }
+  }, [isProcessing]);
 
-  const onChange = async (event: any, selectedDate?: Date) => {
-    if (selectedDate) {
-      const newTime = {
-        hour: selectedDate.getHours(),
-        minute: selectedDate.getMinutes(),
-      };
-      setTempTime(newTime);
+  const hidePicker = useCallback(() => {
+    setShowTimePicker(false);
+  }, []);
 
-      // For Android, update immediately
+  const onChange = useCallback(
+    async (event: any, selectedDate?: Date) => {
+      if (isProcessing) return;
+
+      // Immediately hide the picker for Android
       if (Platform.OS === "android") {
-        await setNotificationTime(newTime);
+        setShowTimePicker(false);
+      }
+
+      if (event.type === "set" && selectedDate) {
+        setIsProcessing(true);
+
+        const newTime = {
+          hour: selectedDate.getHours(),
+          minute: selectedDate.getMinutes(),
+        };
+
+        setTempTime(newTime);
+
+        // For Android, update immediately
+        if (Platform.OS === "android") {
+          try {
+            await setNotificationTime(newTime);
+          } catch (error) {
+            console.error("Error setting notification time:", error);
+          }
+        }
+
+        setIsProcessing(false);
+      } else {
         hidePicker();
       }
-    } else {
+    },
+    [hidePicker, setNotificationTime, isProcessing]
+  );
+
+  const confirmTime = useCallback(async () => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    try {
+      // Only update if the time has actually changed
+      if (
+        tempTime.hour !== notificationTime.hour ||
+        tempTime.minute !== notificationTime.minute
+      ) {
+        await setNotificationTime(tempTime);
+      }
+    } catch (error) {
+      console.error("Error confirming time:", error);
+    } finally {
+      setIsProcessing(false);
       hidePicker();
     }
-  };
-
-  const confirmTime = async () => {
-    await setNotificationTime(tempTime);
-    hidePicker();
-  };
+  }, [
+    tempTime,
+    notificationTime,
+    setNotificationTime,
+    hidePicker,
+    isProcessing,
+  ]);
 
   const notificationDate = new Date();
-  notificationDate.setHours(tempTime.hour, tempTime.minute);
+  notificationDate.setHours(
+    tempTime?.hour ?? notificationTime.hour,
+    tempTime?.minute ?? notificationTime.minute
+  );
 
-  const formatTime = (time: { hour: number; minute: number }) => {
+  const formatTime = useCallback((time: { hour: number; minute: number }) => {
     let hours = time.hour;
     const minutes = time.minute.toString().padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
@@ -58,38 +108,80 @@ export default function WorkoutNotification() {
     hours = hours ? hours : 12;
     const formattedHours = hours.toString().padStart(2, "0");
     return `${formattedHours}:${minutes} ${ampm}`;
-  };
+  }, []);
 
   const formattedTime = formatTime(notificationTime);
 
-  const renderIOSPicker = () => (
-    <Modal transparent={true} visible={showTimePicker} animationType="slide">
-      <View className="flex-1 justify-end">
-        <View
-          className={`${
-            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
-          } p-4 rounded-t-3xl`}
+  const renderIOSPicker = useCallback(
+    () => (
+      <Modal
+        transparent={true}
+        visible={showTimePicker}
+        animationType="slide"
+        onRequestClose={hidePicker}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={hidePicker}
+          className="flex-1 bg-black/30"
         >
-          <DateTimePicker
-            testID="dateTimePicker"
-            value={notificationDate}
-            mode="time"
-            is24Hour={false}
-            display="spinner"
-            onChange={onChange}
-            textColor={colors.text}
-          />
-          <View className="flex-row justify-between mt-4">
-            <TouchableOpacity onPress={hidePicker} className="p-2">
-              <Text className="text-red-500 font-semibold">Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={confirmTime} className="p-2">
-              <Text className="text-blue-500 font-semibold">Confirm</Text>
+          <View className="flex-1 justify-end">
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View
+                className={`${
+                  colorScheme === "dark" ? "bg-gray-800" : "bg-white"
+                } p-4 rounded-t-3xl`}
+              >
+                <DateTimePicker
+                  testID="dateTimePicker"
+                  value={notificationDate}
+                  mode="time"
+                  is24Hour={false}
+                  display="spinner"
+                  onChange={onChange}
+                  textColor={colors.text}
+                />
+                <View className="flex-row justify-between mt-4">
+                  <TouchableOpacity
+                    onPress={hidePicker}
+                    className="p-2"
+                    disabled={isProcessing}
+                  >
+                    <Text className="text-red-500 font-semibold">Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={confirmTime}
+                    className="p-2"
+                    disabled={isProcessing}
+                  >
+                    <Text
+                      className={`text-blue-500 font-semibold ${
+                        isProcessing ? "opacity-50" : ""
+                      }`}
+                    >
+                      Confirm
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
-    </Modal>
+        </TouchableOpacity>
+      </Modal>
+    ),
+    [
+      showTimePicker,
+      colorScheme,
+      notificationDate,
+      onChange,
+      hidePicker,
+      confirmTime,
+      colors.text,
+      isProcessing,
+    ]
   );
 
   return (
@@ -120,9 +212,12 @@ export default function WorkoutNotification() {
           </Text>
           <TouchableOpacity
             onPress={showPicker}
+            disabled={isProcessing}
             className={`${
               colorScheme === "dark" ? "bg-blue-600" : "bg-blue-500"
-            } py-3 px-6 rounded-full flex-row items-center justify-center`}
+            } py-3 px-6 rounded-full flex-row items-center justify-center ${
+              isProcessing ? "opacity-50" : ""
+            }`}
             accessibilityLabel="Change notification time"
           >
             <Feather
@@ -139,9 +234,12 @@ export default function WorkoutNotification() {
 
         <TouchableOpacity
           onPress={checkAndScheduleWorkout}
+          disabled={isProcessing}
           className={`${
             colorScheme === "dark" ? "bg-green-600" : "bg-green-500"
-          } py-4 px-6 rounded-full w-full flex-row items-center justify-center`}
+          } py-4 px-6 rounded-full w-full flex-row items-center justify-center ${
+            isProcessing ? "opacity-50" : ""
+          }`}
           accessibilityLabel="Check and schedule workout"
         >
           <Feather
